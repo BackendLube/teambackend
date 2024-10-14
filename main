@@ -1,1 +1,36 @@
+#include <crow.h>  // Using the Crow framework
 
+// Define a struct for handling property investment data
+struct Property {
+    std::string name;
+    double price;
+    double rentalIncome;
+    double expenses;
+    double capRate;
+};
+
+// Placeholder function to calculate investment metrics
+Property analyzeInvestment(const std::string& propertyName) {
+    // For simplicity, assume fixed data
+    Property property = {propertyName, 500000, 5000, 1000, 0.08};
+    return property;
+}
+
+int main() {
+    crow::SimpleApp app;
+
+    // Define API route for fetching investment analysis data
+    CROW_ROUTE(app, "/investment/<string>")
+    ([](const std::string& propertyName) {
+        auto result = analyzeInvestment(propertyName);
+        crow::json::wvalue jsonResponse;
+        jsonResponse["name"] = result.name;
+        jsonResponse["price"] = result.price;
+        jsonResponse["rentalIncome"] = result.rentalIncome;
+        jsonResponse["expenses"] = result.expenses;
+        jsonResponse["capRate"] = result.capRate;
+        return crow::response(jsonResponse);
+    });
+
+    app.port(8080).multithreaded().run();
+}
