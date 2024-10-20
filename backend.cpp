@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
+using namespace std;
 // User types
 enum class UserType {
     RealEstateOwner,
@@ -22,23 +22,23 @@ enum class UserType {
 // Basic user structure
 struct User {
     int id;
-    std::string username;
-    std::string password;
+    string username;
+    string password;
     UserType type;
 };
 
 // Basic property structure
 struct Property {
     int id;
-    std::string description;
-    std::vector<std::string> photos;
+    string description;
+ vector<std::string> photos;
     double performance_metric;
 };
 
 // Basic tenant structure
 struct Tenant {
     int id;
-    std::string name;
+   string name;
     int property_id;
 };
 
@@ -46,15 +46,15 @@ struct Tenant {
 struct MaintenanceRequest {
     int id;
     int property_id;
-    std::string description;
+   string description;
     bool resolved;
 };
 
 // Basic vendor structure
 struct Vendor {
     int id;
-    std::string name;
-    std::string service_type;
+   string name;
+   string service_type;
 };
 
 // Function declarations
@@ -98,7 +98,7 @@ double forecastCashFlow(int property_id, int months);
 // Main function
 int main() {
     // Initialize system
-    std::cout << "Real Estate Management System Initialized" << std::endl;
+   cout << "Real Estate Management System Initialized" << std::endl;
 
     // Main program loop would go here
 
