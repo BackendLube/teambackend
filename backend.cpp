@@ -31,7 +31,7 @@ struct User {
 struct Property {
     int id;
     string description;
- vector<std::string> photos;
+ vector<string> photos;
     double performance_metric;
 };
 
@@ -60,22 +60,22 @@ struct Vendor {
 // Function declarations
 
 // Authentication and User Management
-void login(std::string username, std::string password);
+void login(string username, string password);
 void logout();
 bool authenticate2FA(int user_id);
-void changePassword(int user_id, std::string new_password);
+void changePassword(int user_id, string new_password);
 void createUserProfile(User user);
 void updateUserProfile(int user_id, User updated_user);
 
 // Property Management
 void addProperty(Property property);
 void updateProperty(int property_id, Property updated_property);
-void addPropertyPhoto(int property_id, std::string photo_url);
+void addPropertyPhoto(int property_id, string photo_url);
 double calculatePropertyPerformance(int property_id);
 
 // Tenant Management
 void addTenant(Tenant tenant);
-void communicateWithTenant(int tenant_id, std::string message);
+void communicateWithTenant(int tenant_id, string message);
 
 // Maintenance Management
 void createMaintenanceRequest(MaintenanceRequest request);
@@ -98,7 +98,7 @@ double forecastCashFlow(int property_id, int months);
 // Main function
 int main() {
     // Initialize system
-   cout << "Real Estate Management System Initialized" << std::endl;
+   cout << "Real Estate Management System Initialized" << endl;
 
     // Main program loop would go here
 
