@@ -3,236 +3,171 @@
 #include <vector>
 #include <map>
 
-//////////////////////////////////////////////
-// Actor Class Hierarchy
-//////////////////////////////////////////////
+using namespace std; // Using standard library
 
-// Base class for all users in the system
+// Base class for all users
 class User {
 protected:
-    std::string username;  // User's login name
-    std::string role;      // User's role in the system (admin, tenant, etc.)
+    string username;  // User's name
+    string role;      // User's role (like admin or tenant)
 public:
-    // Constructor for creating a user with a name and role
-    User(std::string name, std::string userRole) 
+    // Constructor to create a user with a name and role
+    User(string name, string userRole) 
         : username(name), role(userRole) {}
-    // Virtual destructor for proper inheritance
+    // Destructor
     virtual ~User() {}
 };
 
-// Property Manager can be either admin or regular employee
-// Actors: Property Manager (Admin), Property Manager (Employee)
-// Use Cases: Property Description Management, Vendor Management
+// Property Manager class (Admin or Employee)
 class PropertyManager : public User {
 public:
-    PropertyManager(std::string name, bool isAdmin) 
+    PropertyManager(string name, bool isAdmin) 
         : User(name, isAdmin ? "Admin" : "Employee") {}
 };
 
-// Tenant class for property residents
-// Actors: Tenant
-// Use Cases: Maintenance Request Submission, Tenant Communication
+// Tenant class for people living in properties
 class Tenant : public User {
 public:
-    Tenant(std::string name) : User(name, "Tenant") {}
+    Tenant(string name) : User(name, "Tenant") {}
 };
 
 // Real Estate Owner class
-// Actors: Real Estate Owners
-// Use Cases: View Property Performance Metrics, Investment Analysis
 class RealEstateOwner : public User {
 public:
-    RealEstateOwner(std::string name) : User(name, "Owner") {}
+    RealEstateOwner(string name) : User(name, "Owner") {}
 };
 
 // Financial Advisor class
-// Actors: Financial Advisor
-// Use Cases: Cash Flow Forecasting, Investment Analysis
 class FinancialAdvisor : public User {
 public:
-    FinancialAdvisor(std::string name) : User(name, "Advisor") {}
+    FinancialAdvisor(string name) : User(name, "Advisor") {}
 };
 
 // IT Support class
-// Actors: IT Support
-// Use Cases: System Log Deletion, Intrusion Detection System
 class ITSupport : public User {
 public:
-    ITSupport(std::string name) : User(name, "IT") {}
+    ITSupport(string name) : User(name, "IT") {}
 };
 
-//////////////////////////////////////////////
-// Data Structures
-//////////////////////////////////////////////
-
-// Basic property information structure
+// Structure for property information
 struct Property {
-    int id;                 // Unique property identifier
-    std::string address;    // Property address
-    std::string description;// Property description
-    double value;          // Property value
+    int id;                 // Unique property ID
+    string address;        // Property address
+    string description;    // What the property is like
+    double value;          // How much the property is worth
 };
 
-// Maintenance request structure
+// Structure for maintenance requests
 struct MaintenanceRequest {
-    int id;                 // Unique request identifier
-    std::string description;// Description of the maintenance issue
-    std::string status;     // Current status of the request
+    int id;                 // Unique request ID
+    string description;     // What needs fixing
+    string status;         // Current status of the request
 };
 
-// Vendor information structure
+// Structure for vendor information
 struct Vendor {
-    int id;                 // Unique vendor identifier
-    std::string name;       // Vendor name
-    bool isVerified;        // Verification status
+    int id;                 // Unique vendor ID
+    string name;           // Vendor name
+    bool isVerified;       // Is the vendor verified?
 };
 
-//////////////////////////////////////////////
-// Main System Class
-//////////////////////////////////////////////
-
+// Main system class for managing properties
 class PropertyManagementSystem {
 public:
-    //////////////////////////////////////////////
-    // Use Case Functions
-    //////////////////////////////////////////////
-
-    // UC1: User Login
-    // Actors: All Users
-    // Description: Authenticates user credentials
-    bool userLogin(std::string username, std::string password) {
-        std::cout << "Login attempt: " << username << std::endl;
-        return true;
+    // User login function
+    bool userLogin(string username, string password) {
+        cout << "Login attempt: " << username << endl;
+        return true; // For now, just return true
     }
 
-    // UC2: Property Description Management
-    // Actors: Property Manager
-    // Description: Updates property information
-    void managePropertyDescription(int propertyId, std::string description) {
-        std::cout << "Managing property " << propertyId << std::endl;
+    // Manage property descriptions
+    void managePropertyDescription(int propertyId, string description) {
+        cout << "Managing property " << propertyId << endl;
     }
 
-    // UC3: Upload Property Photos
-    // Actors: Property Manager, Real Estate Agent
-    // Description: Handles property image uploads
-    void uploadPropertyPhotos(int propertyId, std::vector<std::string> photoUrls) {
-        std::cout << "Uploading photos for property " << propertyId << std::endl;
+    // Upload property photos
+    void uploadPropertyPhotos(int propertyId, vector<string> photoUrls) {
+        cout << "Uploading photos for property " << propertyId << endl;
     }
 
-    // UC4: View Property Performance Metrics
-    // Actors: Real Estate Owners, Portfolio Analysts
-    // Description: Displays property performance data
+    // View property metrics
     void viewPropertyMetrics(int propertyId) {
-        std::cout << "Viewing metrics for property " << propertyId << std::endl;
+        cout << "Viewing metrics for property " << propertyId << endl;
     }
 
-    // UC5: Tenant Communication
-    // Actors: Tenant, Property Manager
-    // Description: Handles messaging between tenants and managers
-    void sendTenantCommunication(int tenantId, std::string message) {
-        std::cout << "Message sent to tenant " << tenantId << std::endl;
+    // Send messages to tenants
+    void sendTenantCommunication(int tenantId, string message) {
+        cout << "Message sent to tenant " << tenantId << endl;
     }
 
-    // UC6: Maintenance Request Submission
-    // Actors: Tenant
-    // Description: Creates new maintenance requests
-    void submitMaintenanceRequest(int tenantId, std::string description) {
-        std::cout << "Maintenance request from tenant " << tenantId << std::endl;
+    // Submit maintenance requests
+    void submitMaintenanceRequest(int tenantId, string description) {
+        cout << "Maintenance request from tenant " << tenantId << endl;
     }
 
-    // UC7: Vendor Management
-    // Actors: Property Manager (Admin)
-    // Description: Manages vendor relationships and verification
+    // Manage vendors
     void manageVendor(int vendorId, bool verify) {
-        std::cout << "Managing vendor " << vendorId << std::endl;
+        cout << "Managing vendor " << vendorId << endl;
     }
 
-    // UC8: Portfolio Overview Dashboard
-    // Actors: Property Manager, Portfolio Analyst
-    // Description: Displays portfolio summary
+    // View portfolio overview
     void viewPortfolioOverview(int ownerId) {
-        std::cout << "Viewing portfolio for owner " << ownerId << std::endl;
+        cout << "Viewing portfolio for owner " << ownerId << endl;
     }
 
-    // UC9: Cash Flow Forecasting
-    // Actors: Financial Advisor, Property Manager
-    // Description: Generates financial forecasts
+    // Generate cash flow forecasts
     void generateCashFlowForecast(int propertyId) {
-        std::cout << "Generating forecast for property " << propertyId << std::endl;
+        cout << "Generating forecast for property " << propertyId << endl;
     }
 
-    // UC10: Investment Analysis
-    // Actors: Real Estate Owners, Financial Advisor
-    // Description: Analyzes investment opportunities
+    // Analyze investments
     void analyzeInvestment(int propertyId) {
-        std::cout << "Analyzing investment for property " << propertyId << std::endl;
+        cout << "Analyzing investment for property " << propertyId << endl;
     }
 
-    //////////////////////////////////////////////
-    // Security Functions
-    //////////////////////////////////////////////
-
-    // SEC1: Two-Factor Authentication Setup
-    // Actors: All Users
-    // Description: Enables 2FA security
-    void setupTwoFactorAuth(std::string username) {
-        std::cout << "Setting up 2FA for " << username << std::endl;
+    // Set up two-factor authentication
+    void setupTwoFactorAuth(string username) {
+        cout << "Setting up 2FA for " << username << endl;
     }
 
-    // SEC2: Password Management
-    // Actors: All Users
-    // Description: Handles password changes
-    void changePassword(std::string username, std::string newPassword) {
-        std::cout << "Changing password for " << username << std::endl;
+    // Change user password
+    void changePassword(string username, string newPassword) {
+        cout << "Changing password for " << username << endl;
     }
 
-    // SEC3: Role-Based Access Control
-    // Actors: Admin
-    // Description: Manages user roles and permissions
-    void grantRole(std::string username, std::string role) {
-        std::cout << "Granting role " << role << " to " << username << std::endl;
+    // Grant user roles
+    void grantRole(string username, string role) {
+        cout << "Granting role " << role << " to " << username << endl;
     }
 
-    // SEC4: Audit Logging
-    // Actors: System Admin
-    // Description: Logs system activities
-    void logAuditEvent(std::string action, std::string username) {
-        std::cout << "Logging: " << username << " performed " << action << std::endl;
+    // Log system activities
+    void logAuditEvent(string action, string username) {
+        cout << "Logging: " << username << " did " << action << endl;
     }
 
-    // SEC5: Intrusion Detection
-    // Actors: IT Support
-    // Description: Monitors for suspicious activity
-    void detectIntrusion(std::string ipAddress) {
-        std::cout << "Checking activity from " << ipAddress << std::endl;
+    // Check for suspicious activity
+    void detectIntrusion(string ipAddress) {
+        cout << "Checking activity from " << ipAddress << endl;
     }
 
-    // SEC6: Data Backup
-    // Actors: IT Support
-    // Description: Performs system backups
+    // Backup system data
     void backupData() {
-        std::cout << "Performing system backup" << std::endl;
+        cout << "Performing system backup" << endl;
     }
 
-    // SEC7: IP Whitelisting
-    // Actors: Admin
-    // Description: Manages allowed IP addresses
-    void whitelistIP(std::string ipAddress) {
-        std::cout << "Whitelisting IP: " << ipAddress << std::endl;
+    // Whitelist IP addresses
+    void whitelistIP(string ipAddress) {
+        cout << "Whitelisting IP: " << ipAddress << endl;
     }
 
-    // SEC8: File Upload Validation
-    // Actors: All Users
-    // Description: Validates uploaded files
-    void validateFileUpload(std::string filename) {
-        std::cout << "Validating file: " << filename << std::endl;
+    // Validate uploaded files
+    void validateFileUpload(string filename) {
+        cout << "Validating file: " << filename << endl;
     }
 
-    // SEC9: Session Management
-    // Actors: All Users
-    // Description: Manages user sessions
-    void checkSessionTimeout(std::string username) {
-        std::cout << "Checking session for " << username << std::endl;
+    // Check user session timeout
+    void checkSessionTimeout(string username) {
+        cout << "Checking session for " << username << endl;
     }
 };
 
@@ -241,24 +176,24 @@ public:
 //////////////////////////////////////////////
 
 int main() {
-    // Initialize the system
+    // Create the system
     PropertyManagementSystem system;
     
-    // Create example actors
+    // Create users
     PropertyManager admin("John", true);      // Admin property manager
     Tenant tenant("Alice");                   // Regular tenant
     RealEstateOwner owner("Bob");            // Property owner
     FinancialAdvisor advisor("Charlie");      // Financial advisor
     ITSupport support("Dave");                // IT support staff
     
-    // Demonstrate basic operations
-    std::cout << "\n=== Basic Operations Demo ===\n";
+    // Do some basic operations
+    cout << "\n=== Basic Operations Demo ===\n";
     system.userLogin("admin", "password");
     system.managePropertyDescription(1, "New property");
     system.submitMaintenanceRequest(1, "Broken window");
     
-    // Demonstrate security operations
-    std::cout << "\n=== Security Operations Demo ===\n";
+    // Do some security operations
+    cout << "\n=== Security Operations Demo ===\n";
     system.setupTwoFactorAuth("admin");
     system.logAuditEvent("login", "admin");
     system.checkSessionTimeout("admin");
