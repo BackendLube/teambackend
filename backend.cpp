@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <crow.h> // Lightweight C++ web framework
+#include <crow_all.h> // Lightweight C++ web framework
 #include <crow/json.h>
 #include <ctime>
 
