@@ -178,11 +178,11 @@ int main() {
     PropertyManagementSystem system;
     
     // Create users
-    PropertyManager admin("John", true);      // Admin property manager
-    Tenant tenant("Alice");                   // Regular tenant
-    RealEstateOwner owner("Bob");            // Property owner
-    FinancialAdvisor advisor("Charlie");      // Financial advisor
-    ITSupport support("Dave");                // IT support staff
+    PropertyManager admin("", true);      // Admin property manager
+    Tenant tenant("");                   // Regular tenant
+    RealEstateOwner owner("");            // Property owner
+    FinancialAdvisor advisor("");      // Financial advisor
+    ITSupport support("");                // IT support staff
     
     //basic operations
     cout << "\n=== Test  ===\n";
