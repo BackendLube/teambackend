@@ -1,147 +1,222 @@
 #include <iostream>
 #include <string>
 #include <vector>
-using namespace std;
+#include <map>
+#include <crow.h> // Lightweight C++ web framework
+#include <crow/json.h>
+#include <ctime>
 
-// Enumeration that is going to categorize different types of users in the system
-enum class UserType {
-    RealEstateOwner,
-    PropertyManagerOwner,
-    PropertyManagerEmployee,
-    PropertyManagerAdmin,
-    RealEstateAgent,
-    Tenant,
-    SoftwareDeveloper,
-    LeasingAgent,
-    Accountant,
-    FinancialAdvisor,
-    Lender,
-    PortfolioAnalyst,
-    ITSupport
-};
-
-// Structure that is used for representing a system user with an ID, username, password, and their role (UserType)
-struct User {
-    int id;
-    string username;
-    string password;
-    UserType type;
-};
-
-// Structure that will hold property details such as description, photos, and performance metrics
+// Structure definitions matching frontend needs
 struct Property {
     int id;
-    string description;
-    vector<string> photos;
+    std::string description;
+    std::vector<std::string> photos;
     double performance_metric;
+    std::string address;
+    double value;
 };
 
-// Structure that is going to store information about a tenant, such as their name and associated property
 struct Tenant {
     int id;
-    string name;
+    std::string name;
     int property_id;
+    std::string lease_start;
+    std::string lease_end;
+    double rent_amount;
 };
 
-// Structure representing a request for maintenance made for a property
 struct MaintenanceRequest {
     int id;
     int property_id;
-    string description;
-    bool resolved;
+    std::string description;
+    std::string status;
+    std::string created_at;
 };
 
-// Structure that is there to represent a vendor and the services they provide
-struct Vendor {
-    int id;
-    string name;
-    string service_type;
+struct DashboardMetrics {
+    int total_properties;
+    double occupancy_rate;
+    double monthly_income;
 };
 
-// Function declarations
+// Mock database
+class Database {
+private:
+    std::vector<Property> properties;
+    std::vector<Tenant> tenants;
+    std::vector<MaintenanceRequest> maintenance_requests;
+    
+public:
+    Database() {
+        // Initialize with mock data
+        properties = {
+            {1, "Modern Apartment Complex", {"photo1.jpg"}, 85.5, "123 Main St", 1200000},
+            {2, "Commercial Building", {"photo2.jpg"}, 92.0, "456 Business Ave", 2500000},
+            {3, "Residential House", {"photo3.jpg"}, 78.3, "789 Oak Rd", 450000}
+        };
+        
+        tenants = {
+            {1, "John Doe", 1, "2024-01-01", "2024-12-31", 1500},
+            {2, "Jane Smith", 1, "2024-02-01", "2024-12-31", 1600},
+            {3, "Bob Johnson", 2, "2024-01-15", "2024-12-31", 2500}
+        };
+        
+        maintenance_requests = {
+            {1, 1, "Leaking faucet in unit 101", "Open", "2024-03-15"},
+            {2, 2, "HVAC maintenance needed", "In Progress", "2024-03-10"},
+            {3, 1, "Broken window", "Resolved", "2024-03-01"}
+        };
+    }
 
-// Function to log in a user by checking their credentials
-void login(string username, string password);
-
-// Function to log out the current user
-void logout();
-
-// Function for 2FA authentication, returns true if the second factor is verified
-bool authenticate2FA(int user_id);
-
-// Function to allow users to change their password
-void changePassword(int user_id, string new_password);
-
-// Function to create a new user profile
-void createUserProfile(User user);
-
-// Function to update an existing user's profile information
-void updateUserProfile(int user_id, User updated_user);
-
-
-
-// Function to add a new property to the system
-void addProperty(Property property);
-
-// Function to update the details of an existing property
-void updateProperty(int property_id, Property updated_property);
-
-// Function to add a photo to a property's photo gallery
-void addPropertyPhoto(int property_id, string photo_url);
-
-// Function to calculate and return a performance metric for a property
-double calculatePropertyPerformance(int property_id);
-
-
-
-// Function to add a new tenant to the system
-void addTenant(Tenant tenant);
-
-// Function to send a message to a tenant (e.g., reminders, notifications)
-void communicateWithTenant(int tenant_id, string message);
-
-
-// Function to create a new maintenance request for a property
-void createMaintenanceRequest(MaintenanceRequest request);
-
-// Function to mark a maintenance request as resolved
-void resolveMaintenanceRequest(int request_id);
-
-// Vendor Management
-
-// Function to add a new vendor to the system
-void addVendor(Vendor vendor);
-
-// Function to assign a vendor to a property for services
-void assignVendorToProperty(int vendor_id, int property_id);
-
-// Portfolio Management
-
-// Function to generate a portfolio overview for a given user
-void generatePortfolioOverview(int user_id);
-
-// Function to generate a dashboard with key information for a user
-void generateDashboard(int user_id);
-
-
-// Function to perform an investment analysis for a property (e.g., ROI, risk assessment)
-double performInvestmentAnalysis(int property_id);
-
-// Function to assess the financial risk associated with a property
-double assessRisk(int property_id);
-
-// Function to compare two properties based on performance and other factors
-void compareProperties(int property_id1, int property_id2);
-
-// Function to forecast cash flow over a given number of months for a property
-double forecastCashFlow(int property_id, int months);
+    // Database access methods
+    std::vector<Property>& get_properties() { return properties; }
+    std::vector<Tenant>& get_tenants() { return tenants; }
+    std::vector<MaintenanceRequest>& get_maintenance_requests() { return maintenance_requests; }
+    
+    DashboardMetrics get_dashboard_metrics() {
+        double total_income = 0;
+        for (const auto& tenant : tenants) {
+            total_income += tenant.rent_amount;
+        }
+        
+        return {
+            static_cast<int>(properties.size()),
+            85.5, // Mock occupancy rate
+            total_income
+        };
+    }
+};
 
 int main() {
-    // Initialize system
-    cout << "Real Estate Management System Initialized" << endl;
+    // Initialize crow application
+    crow::SimpleApp app;
+    
+    // Initialize database
+    Database db;
 
-    // Main program loop would go here
-    // (User interactions, system state management, etc.)
+    // CORS middleware
+    struct CORSMiddleware {
+        struct context {};
+        
+        void before_handle(crow::request& req, crow::response& res, context& ctx) {
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type");
+        }
+        
+        void after_handle(crow::request& req, crow::response& res, context& ctx) {
+            // Nothing to do
+        }
+    };
 
+    // Add CORS middleware to app
+    app.use<CORSMiddleware>();
+
+    // Authentication endpoint
+    CROW_ROUTE(app, "/api/login")
+        .methods("POST"_method)
+        ([](const crow::request& req) {
+            auto x = crow::json::load(req.body);
+            if (!x) {
+                return crow::response(400, "Invalid JSON");
+            }
+            
+            std::string username = x["username"].s();
+            std::string password = x["password"].s();
+            
+            // Check hardcoded credentials
+            if (username == "backend" && password == "team101") {
+                crow::json::wvalue response;
+                response["success"] = true;
+                response["token"] = "mock_token_123"; // In real app, generate JWT
+                return crow::response(200, response);
+            }
+            
+            return crow::response(401, "Invalid credentials");
+        });
+
+    // Dashboard metrics endpoint
+    CROW_ROUTE(app, "/api/dashboard")
+        .methods("GET"_method)
+        ([&db](const crow::request& req) {
+            auto metrics = db.get_dashboard_metrics();
+            crow::json::wvalue response;
+            response["totalProperties"] = metrics.total_properties;
+            response["occupancyRate"] = metrics.occupancy_rate;
+            response["monthlyIncome"] = metrics.monthly_income;
+            return crow::response(200, response);
+        });
+
+    // Properties endpoint
+    CROW_ROUTE(app, "/api/properties")
+        .methods("GET"_method)
+        ([&db](const crow::request& req) {
+            auto& properties = db.get_properties();
+            crow::json::wvalue response;
+            std::vector<crow::json::wvalue> props;
+            
+            for (const auto& prop : properties) {
+                crow::json::wvalue p;
+                p["id"] = prop.id;
+                p["description"] = prop.description;
+                p["photos"] = prop.photos;
+                p["performance_metric"] = prop.performance_metric;
+                p["address"] = prop.address;
+                p["value"] = prop.value;
+                props.push_back(std::move(p));
+            }
+            
+            response["properties"] = std::move(props);
+            return crow::response(200, response);
+        });
+
+    // Tenants endpoint
+    CROW_ROUTE(app, "/api/tenants")
+        .methods("GET"_method)
+        ([&db](const crow::request& req) {
+            auto& tenants = db.get_tenants();
+            crow::json::wvalue response;
+            std::vector<crow::json::wvalue> t;
+            
+            for (const auto& tenant : tenants) {
+                crow::json::wvalue ten;
+                ten["id"] = tenant.id;
+                ten["name"] = tenant.name;
+                ten["property_id"] = tenant.property_id;
+                ten["lease_start"] = tenant.lease_start;
+                ten["lease_end"] = tenant.lease_end;
+                ten["rent_amount"] = tenant.rent_amount;
+                t.push_back(std::move(ten));
+            }
+            
+            response["tenants"] = std::move(t);
+            return crow::response(200, response);
+        });
+
+    // Maintenance requests endpoint
+    CROW_ROUTE(app, "/api/maintenance")
+        .methods("GET"_method)
+        ([&db](const crow::request& req) {
+            auto& requests = db.get_maintenance_requests();
+            crow::json::wvalue response;
+            std::vector<crow::json::wvalue> reqs;
+            
+            for (const auto& req : requests) {
+                crow::json::wvalue r;
+                r["id"] = req.id;
+                r["property_id"] = req.property_id;
+                r["description"] = req.description;
+                r["status"] = req.status;
+                r["created_at"] = req.created_at;
+                reqs.push_back(std::move(r));
+            }
+            
+            response["maintenance_requests"] = std::move(reqs);
+            return crow::response(200, response);
+        });
+
+    // Start server
+    app.port(3000).multithreaded().run();
+    
     return 0;
 }
