@@ -1,39 +1,34 @@
 import React, { useState, useEffect } from 'react'
-// Import necessary icons from lucide-react
 import { AlertCircle, Building, Users, Wrench, DollarSign, LogOut, PieChart } from 'lucide-react'
-// Import UI components from shadcn/ui
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-// Default property structure
-const Property = {
-  id: 0,
-  description: '',
-  photos: [],
-  performance_metric: 0
-}
-
-// Default maintenance request structure
-const MaintenanceRequest = {
-  id: 0,
-  property_id: 0,
-  description: '',
-  status: 'Open'
-}
-
-// Dashboard component displays overview metrics and property information
+// Dashboard component now fetches and displays real metrics
 const Dashboard = () => {
-  // State for storing property list
-  const [properties, setProperties] = useState([])
-  // State for storing dashboard metrics
-  const [metrics, setMetrics] = useState({ totalProperties: 0, occupancyRate: 0, monthlyIncome: 0 })
+  const [metrics, setMetrics] = useState({
+    totalProperties: 0,
+    occupancyRate: 0,
+    monthlyIncome: 0
+  })
+
+  useEffect(() => {
+    // Fetch dashboard metrics when component mounts
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/dashboard')
+        const data = await response.json()
+        setMetrics(data)
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error)
+      }
+    }
+    fetchMetrics()
+  }, [])
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
-      {/* Grid layout for metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Properties card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -45,7 +40,6 @@ const Dashboard = () => {
             <p className="text-2xl font-bold">{metrics.totalProperties}</p>
           </CardContent>
         </Card>
-        {/* Occupancy rate card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -57,7 +51,6 @@ const Dashboard = () => {
             <p className="text-2xl font-bold">{metrics.occupancyRate}%</p>
           </CardContent>
         </Card>
-        {/* Monthly income card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -74,22 +67,153 @@ const Dashboard = () => {
   )
 }
 
-// Login component handles user authentication
+// Properties component to display property list
+const Properties = () => {
+  const [properties, setProperties] = useState([])
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/properties')
+        const data = await response.json()
+        setProperties(data.properties)
+      } catch (error) {
+        console.error('Failed to fetch properties:', error)
+      }
+    }
+    fetchProperties()
+  }, [])
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Properties</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {properties.map(property => (
+          <Card key={property.id}>
+            <CardHeader>
+              <CardTitle>{property.address}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{property.description}</p>
+              <p className="mt-2">Value: ${property.value.toLocaleString()}</p>
+              <p>Performance: {property.performance_metric}%</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Tenants component to display tenant list
+const Tenants = () => {
+  const [tenants, setTenants] = useState([])
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/tenants')
+        const data = await response.json()
+        setTenants(data.tenants)
+      } catch (error) {
+        console.error('Failed to fetch tenants:', error)
+      }
+    }
+    fetchTenants()
+  }, [])
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Tenants</h2>
+      <div className="grid gap-4">
+        {tenants.map(tenant => (
+          <Card key={tenant.id}>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold">{tenant.name}</h3>
+                  <p>Property ID: {tenant.property_id}</p>
+                </div>
+                <div className="text-right">
+                  <p>Lease: {tenant.lease_start} - {tenant.lease_end}</p>
+                  <p>Rent: ${tenant.rent_amount}/month</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Maintenance component to display maintenance requests
+const Maintenance = () => {
+  const [requests, setRequests] = useState([])
+
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/maintenance')
+        const data = await response.json()
+        setRequests(data.maintenance_requests)
+      } catch (error) {
+        console.error('Failed to fetch maintenance requests:', error)
+      }
+    }
+    fetchMaintenance()
+  }, [])
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Maintenance Requests</h2>
+      <div className="grid gap-4">
+        {requests.map(request => (
+          <Card key={request.id}>
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold">Property ID: {request.property_id}</h3>
+                  <p>{request.description}</p>
+                </div>
+                <div className="text-right">
+                  <p>Status: {request.status}</p>
+                  <p>Created: {request.created_at}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Login component with API integration
 const Login = ({ onLogin }) => {
-  // State for form inputs and error message
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    // Check hardcoded credentials
-    if (username === 'backend' && password === 'team101') {
-      onLogin(username)
-    } else {
-      setError('Invalid credentials. Please use username: backend, password: team101')
+    try {
+      const response = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+
+      if (!response.ok) {
+        throw new Error('Invalid credentials')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        onLogin(username)
+      }
+    } catch (error) {
+      setError('Login failed. Please check your credentials.')
     }
   }
 
@@ -100,33 +224,27 @@ const Login = ({ onLogin }) => {
           <CardTitle>Login to Real Estate Manager</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Error message display */}
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {/* Login form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username (backend)"
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password (team101)"
-                className="w-full p-2 border rounded"
-              />
-            </div>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username (backend)"
+              className="w-full p-2 border rounded"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password (team101)"
+              className="w-full p-2 border rounded"
+            />
             <button
               type="submit"
               className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
@@ -140,12 +258,10 @@ const Login = ({ onLogin }) => {
   )
 }
 
-// Navigation component provides the top navigation bar
+// Navigation component remains mostly the same but with updated styling
 const Navigation = ({ onNavigate, onLogout }) => (
   <nav className="bg-gray-800 text-white p-4">
-    {/* Navigation menu */}
     <ul className="flex space-x-4">
-      {/* Dashboard button */}
       <li>
         <button
           onClick={() => onNavigate('dashboard')}
@@ -155,7 +271,6 @@ const Navigation = ({ onNavigate, onLogout }) => (
           Dashboard
         </button>
       </li>
-      {/* Properties button */}
       <li>
         <button
           onClick={() => onNavigate('properties')}
@@ -165,7 +280,6 @@ const Navigation = ({ onNavigate, onLogout }) => (
           Properties
         </button>
       </li>
-      {/* Tenants button */}
       <li>
         <button
           onClick={() => onNavigate('tenants')}
@@ -175,7 +289,6 @@ const Navigation = ({ onNavigate, onLogout }) => (
           Tenants
         </button>
       </li>
-      {/* Maintenance button */}
       <li>
         <button
           onClick={() => onNavigate('maintenance')}
@@ -185,17 +298,6 @@ const Navigation = ({ onNavigate, onLogout }) => (
           Maintenance
         </button>
       </li>
-      {/* Financials button */}
-      <li>
-        <button
-          onClick={() => onNavigate('financials')}
-          className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-700"
-        >
-          <DollarSign className="h-4 w-4" />
-          Financials
-        </button>
-      </li>
-      {/* Logout button */}
       <li className="ml-auto">
         <button
           onClick={onLogout}
@@ -209,39 +311,33 @@ const Navigation = ({ onNavigate, onLogout }) => (
   </nav>
 )
 
-// Main App component manages the application state and routing
+// Main App component
 const App = () => {
-  // State for managing logged-in user
   const [user, setUser] = useState(null)
-  // State for managing current page
   const [currentPage, setCurrentPage] = useState('dashboard')
 
-  // Handle user login
   const handleLogin = (username) => {
     setUser(username)
   }
 
-  // Handle user logout
   const handleLogout = () => {
     setUser(null)
   }
 
-  // Handle page navigation
   const handleNavigate = (page) => {
     setCurrentPage(page)
   }
 
-  // Render the appropriate page based on current route
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard />
       case 'properties':
-        return <h2 className="p-6 text-2xl font-bold">Properties</h2>
+        return <Properties />
       case 'tenants':
-        return <h2 className="p-6 text-2xl font-bold">Tenants</h2>
+        return <Tenants />
       case 'maintenance':
-        return <h2 className="p-6 text-2xl font-bold">Maintenance Requests</h2>
+        return <Maintenance />
       case 'financials':
         return <h2 className="p-6 text-2xl font-bold">Financials</h2>
       default:
@@ -249,12 +345,10 @@ const App = () => {
     }
   }
 
-  // Show login page if no user is logged in
   if (!user) {
     return <Login onLogin={handleLogin} />
   }
 
-  // Show main application layout when user is logged in
   return (
     <div className="min-h-screen bg-gray-100">
       <Navigation onNavigate={handleNavigate} onLogout={handleLogout} />
