@@ -5,19 +5,22 @@
     <style>
         /* Basic CSS for layout and styling */
         body {
+            /* Define font, margins, padding, and background for the whole page */
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5;
+            background-color: white;
         }
         
         .nav {
-            background-color: #1a1a1a;
+            /* Style the navigation bar with a dark background and padding */
+            background-color: black;
             padding: 1rem;
             color: white;
         }
         
         .nav button {
+            /* Style the navigation buttons inside the navbar */
             background: none;
             border: none;
             color: white;
@@ -27,15 +30,18 @@
         }
         
         .nav button:hover {
-            background-color: #333;
+            /* Add hover effect for buttons in navigation */
+            background-color: grey;
             border-radius: 4px;
         }
         
         .content {
+            /* Add padding to the main content area */
             padding: 2rem;
         }
         
         .card {
+            /* Style for individual cards in the dashboard (properties, tenants, etc.) */
             background: white;
             border-radius: 8px;
             padding: 1rem;
@@ -44,6 +50,7 @@
         }
         
         .grid {
+            /* Define grid layout for dashboard content with responsive columns */
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
@@ -51,6 +58,7 @@
         }
         
         .login-container {
+            /* Style for the login form container */
             max-width: 400px;
             margin: 100px auto;
             padding: 2rem;
@@ -60,6 +68,7 @@
         }
         
         input {
+            /* Style input fields in the login form */
             width: 100%;
             padding: 0.5rem;
             margin-bottom: 1rem;
@@ -68,7 +77,8 @@
         }
         
         button {
-            background-color: #0066cc;
+            /* Style the submit button in forms */
+            background-color: blue;
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -77,10 +87,12 @@
         }
         
         button:hover {
-            background-color: #0052a3;
+            /* Change button color on hover */
+            background-color: blue;
         }
         
         .error {
+             /*Style for error messages*/ 
             color: red;
             margin-bottom: 1rem;
         }
@@ -90,17 +102,17 @@
     <div id="app"></div>
 
     <script>
-        // Mock data (simulating backend data)
-        const mockData = {
+        /* Data (simulating backend data)*/
+        const data = {
             properties: [
                 { id: 1, address: "123 Main St", description: "Modern Apartment", value: 1200000, performance: 85.5 },
-                { id: 2, address: "456 Oak Ave", description: "Commercial Space", value: 2500000, performance: 92.0 },
-                { id: 3, address: "789 Pine Rd", description: "Residential Home", value: 450000, performance: 78.3 }
+                { id: 2, address: "456 Meridian Rd", description: "Commercial Space", value: 2500000, performance: 92.0 },
+                { id: 3, address: "789 Normal Ave", description: "Residential Home", value: 450000, performance: 78.3 }
             ],
             tenants: [
-                { id: 1, name: "John Doe", property_id: 1, lease_start: "2024-01-01", lease_end: "2024-12-31", rent: 1500 },
-                { id: 2, name: "Jane Smith", property_id: 1, lease_start: "2024-02-01", lease_end: "2024-12-31", rent: 1600 },
-                { id: 3, name: "Bob Johnson", property_id: 2, lease_start: "2024-01-15", lease_end: "2024-12-31", rent: 2500 }
+                { id: 1, name: "Evan Lubinsky", property_id: 1, lease_start: "2024-01-01", lease_end: "2024-12-31", rent: 1500 },
+                { id: 2, name: "Aden Llewellyn", property_id: 1, lease_start: "2024-02-01", lease_end: "2024-12-31", rent: 1600 },
+                { id: 3, name: "Jake Dobson", property_id: 2, lease_start: "2024-01-15", lease_end: "2024-12-31", rent: 2500 }
             ],
             maintenance: [
                 { id: 1, property_id: 1, description: "Leaking faucet", status: "Open", created_at: "2024-03-15" },
@@ -109,25 +121,25 @@
             ]
         };
 
-        // State management
-        let currentUser = null;
-        let currentPage = 'dashboard';
+        /* State management */
+        let currentUser = null; /* current user state */
+        let currentPage = 'dashboard'; /* default to dashboard page */
 
-        // Component rendering functions
+        /* Components for login functions */
         function renderLogin() {
             return `
                 <div class="login-container">
                     <h2>Property Management Login</h2>
-                    <div id="loginError" class="error"></div>
+                    <div id="loginError" class="error"></div> 
                     <form onsubmit="handleLogin(event)">
-                        <input type="text" id="username" placeholder="Username (use: admin)" required>
-                        <input type="password" id="password" placeholder="Password (use: password)" required>
+                        <input type="text" id="backend" placeholder="Username" required>
+                        <input type="password" id="backend123" placeholder="Password" required>
                         <button type="submit">Login</button>
                     </form>
                 </div>
             `;
         }
-
+        /*  functions for navigation bar with buttons for different sections */
         function renderNavigation() {
             return `
                 <div class="nav">
@@ -139,10 +151,10 @@
                 </div>
             `;
         }
-
+        /* creates the dashboard view displaying total properties, rent, and active maintenance */
         function renderDashboard() {
-            const totalProperties = mockData.properties.length;
-            const totalRent = mockData.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
+            const totalProperties = data.properties.length;
+            const totalRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
             
             return `
                 <div class="content">
@@ -158,19 +170,19 @@
                         </div>
                         <div class="card">
                             <h3>Active Maintenance</h3>
-                            <p>${mockData.maintenance.filter(m => m.status !== 'Resolved').length}</p>
+                            <p>${data.maintenance.filter(m => m.status !== 'Resolved').length}</p>
                         </div>
                     </div>
                 </div>
             `;
         }
-
+        /* displays property details */
         function renderProperties() {
             return `
                 <div class="content">
                     <h2>Properties</h2>
                     <div class="grid">
-                        ${mockData.properties.map(property => `
+                        ${data.properties.map(property => `
                             <div class="card">
                                 <h3>${property.address}</h3>
                                 <p>${property.description}</p>
@@ -182,12 +194,12 @@
                 </div>
             `;
         }
-
+        /* displays tenant details */
         function renderTenants() {
             return `
                 <div class="content">
                     <h2>Tenants</h2>
-                    ${mockData.tenants.map(tenant => `
+                    ${data.tenants.map(tenant => `
                         <div class="card">
                             <h3>${tenant.name}</h3>
                             <p>Property ID: ${tenant.property_id}</p>
@@ -198,12 +210,12 @@
                 </div>
             `;
         }
-
+        /* displays maintenance details */
         function renderMaintenance() {
             return `
                 <div class="content">
                     <h2>Maintenance Requests</h2>
-                    ${mockData.maintenance.map(request => `
+                    ${data.maintenance.map(request => `
                         <div class="card">
                             <h3>Property ID: ${request.property_id}</h3>
                             <p>${request.description}</p>
@@ -215,40 +227,43 @@
             `;
         }
 
-        // Event handlers
+        /* Event handlers */
         function handleLogin(event) {
+            /* handles the login logic */
             event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const username = document.getElementById('backend').value;
+            const password = document.getElementById('backend123').value;
             
-            if (username === 'admin' && password === 'password') {
-                currentUser = username;
-                render();
+            if (username === 'backend' && password === 'backend123') {
+                currentUser = username; /* sets user to logged in */
+                render(); /* gather data */
             } else {
                 document.getElementById('loginError').textContent = 'Invalid credentials';
             }
         }
 
         function handleLogout() {
-            currentUser = null;
-            currentPage = 'dashboard';
-            render();
+            /* handles user logout */
+            currentUser = null; /* clears current user */
+            currentPage = 'dashboard'; /* reset to dashboard */
+            render(); /* gather data */
         }
 
         function changePage(page) {
             currentPage = page;
-            render();
+            render(); /* gather data */
         }
 
         // Main render function
         function render() {
+            /* main function to collect/render the app */
             const app = document.getElementById('app');
-            
+            /* if user is logged in, show the login page */
             if (!currentUser) {
                 app.innerHTML = renderLogin();
                 return;
             }
-            
+            /* render the page based on the current state */
             let content = '';
             switch (currentPage) {
                 case 'dashboard':
@@ -270,7 +285,7 @@
             app.innerHTML = renderNavigation() + content;
         }
 
-        // Initial render
+        /* Initial render when page loads */
         render();
     </script>
 </body>
