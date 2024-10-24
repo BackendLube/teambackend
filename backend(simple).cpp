@@ -184,14 +184,14 @@ int main() {
     FinancialAdvisor advisor("Charlie");      // Financial advisor
     ITSupport support("Dave");                // IT support staff
     
-    // Do some basic operations
-    cout << "\n=== Basic Operations Demo ===\n";
+    //basic operations
+    cout << "\n=== Test  ===\n";
     system.userLogin("admin", "password");
     system.managePropertyDescription(1, "New property");
     system.submitMaintenanceRequest(1, "Broken window");
     
-    // Do some security operations
-    cout << "\n=== Security Operations Demo ===\n";
+    //security operations
+    cout << "\n=== Security test ===\n";
     system.setupTwoFactorAuth("admin");
     system.logAuditEvent("login", "admin");
     system.checkSessionTimeout("admin");
