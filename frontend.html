@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Property Management System</title>
+    <style>
+        /* Basic CSS for layout and styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+        }
+        
+        .nav {
+            background-color: #1a1a1a;
+            padding: 1rem;
+            color: white;
+        }
+        
+        .nav button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+        
+        .nav button:hover {
+            background-color: #333;
+            border-radius: 4px;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0052a3;
+        }
+        
+        .error {
+            color: red;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Mock data (simulating backend data)
+        const mockData = {
+            properties: [
+                { id: 1, address: "123 Main St", description: "Modern Apartment", value: 1200000, performance: 85.5 },
+                { id: 2, address: "456 Oak Ave", description: "Commercial Space", value: 2500000, performance: 92.0 },
+                { id: 3, address: "789 Pine Rd", description: "Residential Home", value: 450000, performance: 78.3 }
+            ],
+            tenants: [
+                { id: 1, name: "John Doe", property_id: 1, lease_start: "2024-01-01", lease_end: "2024-12-31", rent: 1500 },
+                { id: 2, name: "Jane Smith", property_id: 1, lease_start: "2024-02-01", lease_end: "2024-12-31", rent: 1600 },
+                { id: 3, name: "Bob Johnson", property_id: 2, lease_start: "2024-01-15", lease_end: "2024-12-31", rent: 2500 }
+            ],
+            maintenance: [
+                { id: 1, property_id: 1, description: "Leaking faucet", status: "Open", created_at: "2024-03-15" },
+                { id: 2, property_id: 2, description: "HVAC repair", status: "In Progress", created_at: "2024-03-10" },
+                { id: 3, property_id: 1, description: "Broken window", status: "Resolved", created_at: "2024-03-01" }
+            ]
+        };
+
+        // State management
+        let currentUser = null;
+        let currentPage = 'dashboard';
+
+        // Component rendering functions
+        function renderLogin() {
+            return `
+                <div class="login-container">
+                    <h2>Property Management Login</h2>
+                    <div id="loginError" class="error"></div>
+                    <form onsubmit="handleLogin(event)">
+                        <input type="text" id="username" placeholder="Username (use: admin)" required>
+                        <input type="password" id="password" placeholder="Password (use: password)" required>
+                        <button type="submit">Login</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        function renderNavigation() {
+            return `
+                <div class="nav">
+                    <button onclick="changePage('dashboard')">Dashboard</button>
+                    <button onclick="changePage('properties')">Properties</button>
+                    <button onclick="changePage('tenants')">Tenants</button>
+                    <button onclick="changePage('maintenance')">Maintenance</button>
+                    <button onclick="handleLogout()">Logout</button>
+                </div>
+            `;
+        }
+
+        function renderDashboard() {
+            const totalProperties = mockData.properties.length;
+            const totalRent = mockData.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
+            
+            return `
+                <div class="content">
+                    <h2>Dashboard</h2>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Properties</h3>
+                            <p>${totalProperties}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Monthly Income</h3>
+                            <p>$${totalRent.toLocaleString()}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Active Maintenance</h3>
+                            <p>${mockData.maintenance.filter(m => m.status !== 'Resolved').length}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProperties() {
+            return `
+                <div class="content">
+                    <h2>Properties</h2>
+                    <div class="grid">
+                        ${mockData.properties.map(property => `
+                            <div class="card">
+                                <h3>${property.address}</h3>
+                                <p>${property.description}</p>
+                                <p>Value: $${property.value.toLocaleString()}</p>
+                                <p>Performance: ${property.performance}%</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTenants() {
+            return `
+                <div class="content">
+                    <h2>Tenants</h2>
+                    ${mockData.tenants.map(tenant => `
+                        <div class="card">
+                            <h3>${tenant.name}</h3>
+                            <p>Property ID: ${tenant.property_id}</p>
+                            <p>Lease: ${tenant.lease_start} to ${tenant.lease_end}</p>
+                            <p>Rent: $${tenant.rent}/month</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderMaintenance() {
+            return `
+                <div class="content">
+                    <h2>Maintenance Requests</h2>
+                    ${mockData.maintenance.map(request => `
+                        <div class="card">
+                            <h3>Property ID: ${request.property_id}</h3>
+                            <p>${request.description}</p>
+                            <p>Status: ${request.status}</p>
+                            <p>Created: ${request.created_at}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Event handlers
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'admin' && password === 'password') {
+                currentUser = username;
+                render();
+            } else {
+                document.getElementById('loginError').textContent = 'Invalid credentials';
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            currentPage = 'dashboard';
+            render();
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            render();
+        }
+
+        // Main render function
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!currentUser) {
+                app.innerHTML = renderLogin();
+                return;
+            }
+            
+            let content = '';
+            switch (currentPage) {
+                case 'dashboard':
+                    content = renderDashboard();
+                    break;
+                case 'properties':
+                    content = renderProperties();
+                    break;
+                case 'tenants':
+                    content = renderTenants();
+                    break;
+                case 'maintenance':
+                    content = renderMaintenance();
+                    break;
+                default:
+                    content = renderDashboard();
+            }
+            
+            app.innerHTML = renderNavigation() + content;
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
