@@ -1,15 +1,24 @@
 #include "PropertyManagementSystem.h"
+#include <stdexcept>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
 
+using namespace std;
+
+// Constructor: Initializes the SQL connection
 PropertyManagementSystem::PropertyManagementSystem() {
     driver = sql::mysql::get_mysql_driver_instance();
     conn = unique_ptr<sql::Connection>(driver->connect("tcp://localhost:3306", "username", "password"));
     conn->setSchema("property_management_db");
 }
 
+// Destructor: Closes the SQL connection
 PropertyManagementSystem::~PropertyManagementSystem() {
     conn->close();
 }
 
+// User login function
 bool PropertyManagementSystem::userLogin(const string& username, const string& password) {
     try {
         unique_ptr<sql::PreparedStatement> pstmt(
@@ -29,6 +38,7 @@ bool PropertyManagementSystem::userLogin(const string& username, const string& p
     return false;
 }
 
+// Security functions
 void PropertyManagementSystem::setupTwoFactorAuth(const string& username) {
     try {
         unique_ptr<sql::PreparedStatement> pstmt(
@@ -123,4 +133,55 @@ void PropertyManagementSystem::validateFileUpload(const string& filename) {
 void PropertyManagementSystem::checkSessionTimeout(const string& username) {
     cout << "Checking session timeout for user: " << username << endl;
     // Logic to check session timeout (based on last activity timestamp)
+}
+
+// Misuse case implementations
+void PropertyManagementSystem::checkUnauthorizedAccess(int propertyId, const string& username) {
+    // Logic to check for unauthorized access to property data
+    cout << "Checking unauthorized access for user: " << username << " on property ID: " << propertyId << endl;
+}
+
+void PropertyManagementSystem::checkDataTampering(int propertyId) {
+    // Logic to check for data tampering
+    cout << "Checking for data tampering on property ID: " << propertyId << endl;
+}
+
+void PropertyManagementSystem::deleteProperty(int propertyId) {
+    // Logic to handle property deletion
+    cout << "Attempting to delete property ID: " << propertyId << endl;
+}
+
+void PropertyManagementSystem::overrideMaintenanceRequest(int requestId, const string& username) {
+    // Logic to override maintenance requests
+    cout << "User: " << username << " is attempting to override maintenance request ID: " << requestId << endl;
+}
+
+void PropertyManagementSystem::assignVendor(int vendorId, const string& username) {
+    // Logic to assign a vendor
+    cout << "User: " << username << " is assigning vendor ID: " << vendorId << endl;
+}
+
+void PropertyManagementSystem::changeUserRole(const string& username, const string& newRole) {
+    // Logic to change user roles
+    cout << "Changing role for user: " << username << " to " << newRole << endl;
+}
+
+void PropertyManagementSystem::manipulateFinancialData(int propertyId, const string& username) {
+    // Logic to manipulate financial data
+    cout << "User: " << username << " is attempting to manipulate financial data for property ID: " << propertyId << endl;
+}
+
+void PropertyManagementSystem::misuseCommunicationChannels(int userId) {
+    // Logic to check for misuse of communication channels
+    cout << "Checking for misuse of communication channels for user ID: " << userId << endl;
+}
+
+void PropertyManagementSystem::deleteSystemLogs() {
+    // Logic to delete system logs
+    cout << "Attempting to delete system logs." << endl;
+}
+
+void PropertyManagementSystem::handleExcessiveLoginAttempts(const string& username) {
+    // Logic to handle excessive login attempts
+    cout << "Checking for excessive login attempts for user: " << username << endl;
 }
