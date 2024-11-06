@@ -1,146 +1,175 @@
--- Users table: Stores user information for the system, covering all roles like Real Estate Owners, Property Managers, Tenants, etc.
-CREATE TABLE Users (
-    user_id INT PRIMARY KEY AUTO_INCREMENT, 
-    username VARCHAR(50) UNIQUE NOT NULL, 
-    password_hash VARCHAR(255) NOT NULL, 
-    user_type ENUM(
-        'RealEstateOwner', 'PropertyManagerOwner', 'PropertyManagerEmployee', 'PropertyManagerAdmin', 'RealEstateAgent', 'Tenant', 'SoftwareDeveloper', 'LeasingAgent', 'Accountant', 'FinancialAdvisor', 'Lender', 'PortfolioAnalyst', 'ITSupport'
-        ) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL, 
-    phone VARCHAR(20), 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Timestamp when the user account was created
+-- Roles table to define user roles
+CREATE TABLE roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT
 );
 
--- Properties table: Stores details about properties such as address, type, and ownership.
-CREATE TABLE Properties (
-    property_id INT PRIMARY KEY AUTO_INCREMENT, 
-    owner_id INT, 
-    address VARCHAR(255) NOT NULL, 
-    description TEXT, 
-    property_type VARCHAR(50), 
-    value DECIMAL(15, 2), 
-    FOREIGN KEY (owner_id) REFERENCES Users(user_id) -- Links the owner of the property to the Users table
+-- Permissions table to define permissions
+CREATE TABLE permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT
 );
 
--- Property Photos table: Contains the URLs of photos associated with each property.
-CREATE TABLE PropertyPhotos (
-    photo_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    photo_url VARCHAR(255) NOT NULL, 
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id) -- Links the photo to the corresponding property
+-- Users table to store user information, including hashed passwords and related data
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,  -- Store hashed password
+    role_id INT,
+    is_locked BOOLEAN DEFAULT FALSE,      -- Whether the account is locked
+    failed_login_attempts INT DEFAULT 0,  -- Count of failed login attempts
+    last_failed_login DATETIME,          -- Time of last failed login attempt
+    last_login DATETIME,                 -- Time of last successful login
+    is_active BOOLEAN DEFAULT TRUE,      -- Whether the user is active
+    FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
--- Tenants table: Stores tenant details and their lease agreements for properties.
-CREATE TABLE Tenants (
-    tenant_id INT PRIMARY KEY AUTO_INCREMENT, 
-    user_id INT, 
-    property_id INT, 
-    lease_start_date DATE, 
-    lease_end_date DATE, 
-    rent_amount DECIMAL(10, 2), 
-    FOREIGN KEY (user_id) REFERENCES Users(user_id), -- Links the tenant to the Users table
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id) -- Links the lease to the specific property
+-- User Permissions table to assign permissions to users
+CREATE TABLE user_permissions (
+    user_id INT,
+    permission_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id),
+    PRIMARY KEY (user_id, permission_id)
 );
 
--- Maintenance Requests table: Tracks requests for property maintenance reported by tenants.
-CREATE TABLE MaintenanceRequests (
-    request_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    tenant_id INT, 
-    description TEXT, 
-    status ENUM('Open', 'In Progress', 'Resolved') DEFAULT 'Open', 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    resolved_at TIMESTAMP, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id), -- Links the request to the corresponding property
-    FOREIGN KEY (tenant_id) REFERENCES Tenants(tenant_id) -- Links the request to the tenant who made it
+-- Audit Logs table to store audit events
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    event_type VARCHAR(255),
+    event_description TEXT,
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Vendors table: Stores information about service vendors who provide maintenance and repairs.
-CREATE TABLE Vendors (
-    vendor_id INT PRIMARY KEY AUTO_INCREMENT, 
-    name VARCHAR(100) NOT NULL, 
-    service_type VARCHAR(50), 
-    contact_email VARCHAR(100), 
-    contact_phone VARCHAR(20) 
+-- Two-Factor Authentication (2FA) table
+CREATE TABLE two_factor_auth (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    secret_key VARCHAR(255),    -- Store secret key for 2FA
+    is_enabled BOOLEAN DEFAULT FALSE,   -- Whether 2FA is enabled
+    last_verified DATETIME,            -- Timestamp of the last successful 2FA verification
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Property-Vendor Assignments table: Assigns vendors to properties for services and maintenance.
-CREATE TABLE PropertyVendorAssignments (
-    assignment_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    vendor_id INT, 
-    start_date DATE, 
-    end_date DATE, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id), -- Links the assignment to a specific property
-    FOREIGN KEY (vendor_id) REFERENCES Vendors(vendor_id) -- Links the assignment to a specific vendor
+-- Session Timeouts table to track session activity and timeouts
+CREATE TABLE session_timeouts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    session_start DATETIME,
+    session_end DATETIME,
+    session_duration INT,   -- Session duration in seconds
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Financial Transactions table: Tracks all financial transactions for properties.
-CREATE TABLE FinancialTransactions (
-    transaction_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    transaction_type ENUM('Income', 'Expense') NOT NULL, 
-    amount DECIMAL(15, 2) NOT NULL, 
-    description TEXT, 
-    date DATE, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id) -- Links the transaction to the corresponding property
+-- Table for failed login attempts (for brute force detection)
+CREATE TABLE failed_logins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255),
+    attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(255),
+    status VARCHAR(50)      -- Failed, blocked, etc.
 );
 
--- Property Performance Metrics table: Stores performance metrics like income, expenses, and occupancy rate for properties.
-CREATE TABLE PropertyPerformanceMetrics (
-    metric_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    occupancy_rate DECIMAL(5, 2), 
-    monthly_income DECIMAL(15, 2), 
-    monthly_expenses DECIMAL(15, 2), 
-    net_operating_income DECIMAL(15, 2), 
-    cap_rate DECIMAL(5, 2), 
-    date DATE, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id) -- Links the metrics to the corresponding property
+-- Table for whitelisted IP addresses for additional security
+CREATE TABLE whitelisted_ips (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(255) NOT NULL UNIQUE,
+    added_on DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Communications table: Tracks messages exchanged between users of the system.
-CREATE TABLE Communications (
-    communication_id INT PRIMARY KEY AUTO_INCREMENT, 
-    sender_id INT, 
-    receiver_id INT, 
-    message TEXT, 
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    read_at TIMESTAMP, 
-    FOREIGN KEY (sender_id) REFERENCES Users(user_id), -- Links the message to the sender's user account
-    FOREIGN KEY (receiver_id) REFERENCES Users(user_id) -- Links the message to the receiver's user account
+-- File Uploads table to log file uploads and their validation status
+CREATE TABLE file_uploads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    file_name VARCHAR(255),
+    upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50),   -- Pending, validated, rejected, etc.
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Investment Analysis table: Stores analyses related to the return on investment (ROI) and other financial metrics for properties.
-CREATE TABLE InvestmentAnalysis (
-    analysis_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    analyst_id INT, 
-    roi DECIMAL(5, 2), 
-    irr DECIMAL(5, 2), 
-    payback_period INT, 
-    analysis_date DATE, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id), -- Links the analysis to the corresponding property
-    FOREIGN KEY (analyst_id) REFERENCES Users(user_id) -- Links the analysis to the performing analyst
+-- Properties table to store property details
+CREATE TABLE properties (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    address VARCHAR(255),
+    description TEXT,
+    value DECIMAL(15, 2),
+    performance DECIMAL(5, 2),
+    owner_id INT,
+    FOREIGN KEY (owner_id) REFERENCES users(id)
 );
 
--- Risk Assessments table: Stores risk assessments for properties, analyzing risk levels and descriptions.
-CREATE TABLE RiskAssessments (
-    assessment_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    assessor_id INT, 
-    risk_level ENUM('Low', 'Medium', 'High') NOT NULL, 
-    description TEXT, 
-    assessment_date DATE, 
-    FOREIGN KEY (property_id) REFERENCES Properties(property_id), -- Links the assessment to the corresponding property
-    FOREIGN KEY (assessor_id) REFERENCES Users(user_id) -- Links the assessment to the performing assessor
+-- Property Photos table to store photos for each property
+CREATE TABLE property_photos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    photo_url VARCHAR(255),
+    photo_description TEXT,
+    FOREIGN KEY (property_id) REFERENCES properties(id)
 );
 
--- Cash Flow Forecasts table: Stores forecasts of cash flow for properties over a specified period.
-CREATE TABLE CashFlowForecasts (
-    forecast_id INT PRIMARY KEY AUTO_INCREMENT, 
-    property_id INT, 
-    forecaster_id INT, 
+-- Property Documents table for storing documents related to properties
+CREATE TABLE property_documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    document_type VARCHAR(255),
+    document_url VARCHAR(255),
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+);
 
+-- Property Financials table to track financial performance of each property
+CREATE TABLE property_financials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    rent_income DECIMAL(15, 2),
+    operating_expenses DECIMAL(15, 2),
+    capital_expenses DECIMAL(15, 2),
+    mortgage_balance DECIMAL(15, 2),
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+);
+
+-- Table for managing tenant information
+CREATE TABLE tenants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT,
+    name VARCHAR(255),
+    contact_info VARCHAR(255),
+    lease_start DATE,
+    lease_end DATE,
+    rent_amount DECIMAL(15, 2),
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+);
+
+-- Backups table to track database backups (for backup feature)
+CREATE TABLE backups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    backup_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    backup_status VARCHAR(50), -- Successful, failed, pending, etc.
+    initiated_by INT,
+    FOREIGN KEY (initiated_by) REFERENCES users(id)
+);
+
+-- Password Resets table to manage password reset requests
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    reset_token VARCHAR(255) NOT NULL,
+    expiration_time DATETIME NOT NULL,  -- Token expiration time
+    is_used BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Table to track changes made to user accounts (for security purposes)
+CREATE TABLE user_account_changes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    change_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    change_description TEXT,
+    changed_by INT,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (changed_by) REFERENCES users(id)
+);
 
