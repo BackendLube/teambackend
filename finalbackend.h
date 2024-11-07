@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
-#include <memory>
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/resultset.h>
@@ -21,61 +21,110 @@ class User {
 protected:
     string username;
     string role;
-
 public:
     User(string name, string userRole);
     virtual ~User();
-    string getUsername() const;
-    string getRole() const;
 };
 
-// Property Management System
+// Property Manager class (Admin or Employee)
+class PropertyManager : public User {
+public:
+    PropertyManager(string name, bool isAdmin);
+};
+
+// Tenant class for people living in properties
+class Tenant : public User {
+public:
+    Tenant(string name);
+};
+
+// Real Estate Owner class
+class RealEstateOwner : public User {
+public:
+    RealEstateOwner(string name);
+};
+
+// Financial Advisor class
+class FinancialAdvisor : public User {
+public:
+    FinancialAdvisor(string name);
+};
+
+// IT Support class
+class ITSupport : public User {
+public:
+    ITSupport(string name);
+};
+
+// Structure for property information
+struct Property {
+    int id;
+    string address;
+    string description;
+    double value;
+};
+
+// Structure for maintenance requests
+struct MaintenanceRequest {
+    int id;
+    string description;
+    string status;
+};
+
+// Structure for vendor information
+struct Vendor {
+    int id;
+    string name;
+    bool isVerified;
+};
+
 class PropertyManagementSystem {
 private:
+    sql::mysql::MySQL_Driver* driver;
     unique_ptr<sql::Connection> conn;
-    sql::Driver *driver;
-    map<string, string> userPasswords;
-    map<string, bool> twoFactorEnabled;
-    vector<string> ipWhitelist;
 
 public:
     // Constructor: Initializes the SQL connection
     PropertyManagementSystem();
+
     // Destructor: Closes the SQL connection
     ~PropertyManagementSystem();
 
-    // User login function with 2FA and IP whitelisting
-    bool userLogin(const string& username, const string& password, const string& ipAddress);
+    // User login function
+    bool userLogin(const string& username, const string& password);
 
-    // Helper function for user authentication
-    bool authenticateUser(const string& username, const string& password);
+    // Property Management Functions
+    void managePropertyDescription(int propertyId, string description);
+    void uploadPropertyPhotos(int propertyId, vector<string> photoUrls);
+    void viewPropertyMetrics(int propertyId);
+    void sendTenantCommunication(int tenantId, string message);
+    void submitMaintenanceRequest(int tenantId, string description);
+    void manageVendor(int vendorId, bool verify);
+    void viewPortfolioOverview(int ownerId);
+    void generateCashFlowForecast(int propertyId);
+    void analyzeInvestment(int propertyId);
 
-    // Setup Two-Factor Authentication (2FA)
+    // Security Functions
     void setupTwoFactorAuth(const string& username);
-
-    // Role-based access control
-    void grantRole(const string& username, const string& role, const string& requestedBy);
-
-    // Audit logging
+    void changePassword(const string& username, const string& newPassword);
+    void grantRole(const string& username, const string& role);
     void logAuditEvent(const string& action, const string& username);
-
-    // Intrusion detection based on excessive login attempts
     void detectIntrusion(const string& ipAddress);
-
-    // Backup data with encryption
-    void backupData(bool encrypt = true);
-
-    // IP Whitelisting
-    bool isIPWhitelisted(const string& ipAddress);
+    void backupData();
     void whitelistIP(const string& ipAddress);
-
-    // Validate file uploads
     void validateFileUpload(const string& filename);
-
-    // Check session timeout
     void checkSessionTimeout(const string& username);
 
-    // Misuse case handling (example misuse case)
+    // Misuse case implementations
+    void checkUnauthorizedAccess(int propertyId, const string& username);
+    void checkDataTampering(int propertyId);
+    void deleteProperty(int propertyId);
+    void overrideMaintenanceRequest(int requestId, const string& username);
+    void assignVendor(int vendorId, const string& username);
+    void changeUserRole(const string& username, const string& newRole);
+    void manipulateFinancialData(int propertyId, const string& username);
+    void misuseCommunicationChannels(int userId);
+    void deleteSystemLogs();
     void handleExcessiveLoginAttempts(const string& username);
 };
 
