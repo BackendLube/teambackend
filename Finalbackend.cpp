@@ -385,9 +385,17 @@ int main() {
     
     //security operations
     cout << "\n=== Security test ===\n";
+    // Existing security operations
     system.setupTwoFactorAuth("admin");
     system.logAuditEvent("login", "admin");
     system.checkSessionTimeout("admin");
+    system.detectIntrusion("192.168.1.1");
+    system.backupData();
+    system.changePassword("admin", "newPassword123");
+    system.enforcePasswordPolicy("admin", "Secure@123");
+    system.monitorSuspiciousActivity("admin");
+    system.encryptSensitiveData("financial", "sensitive_data");
+    system.performSecurityAudit();
     
     return 0;
 }
