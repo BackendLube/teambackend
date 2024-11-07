@@ -146,10 +146,11 @@ public:
     void analyzeInvestment(int propertyId) {
         cout << "Analyzing investment for property " << propertyId << endl;
     }
-
-    // Security Functions
+// SECURITY FUNCTIONS
+    // Sets up two-factor authentication for the specified user
     void setupTwoFactorAuth(const string& username) {
         try {
+            // Prepare SQL statement to enable two-factor authentication for the user
             unique_ptr<sql::PreparedStatement> pstmt(
                 conn->prepareStatement("UPDATE users SET two_factor_enabled = 1 WHERE username = ?")
             );
@@ -161,8 +162,10 @@ public:
         }
     }
 
+    // Changes the password for the specified user
     void changePassword(const string& username, const string& newPassword) {
         try {
+            // Prepare SQL statement to update the user's password
             unique_ptr<sql::PreparedStatement> pstmt(
                 conn->prepareStatement("UPDATE users SET password = ? WHERE username = ?")
             );
@@ -175,8 +178,10 @@ public:
         }
     }
 
+    // Grants a specified role to the user
     void grantRole(const string& username, const string& role) {
         try {
+            // Prepare SQL statement to set a role for the user
             unique_ptr<sql::PreparedStatement> pstmt(
                 conn->prepareStatement("UPDATE users SET role = ? WHERE username = ?")
             );
@@ -189,8 +194,10 @@ public:
         }
     }
 
+    // Logs an audit event for the specified action by the user
     void logAuditEvent(const string& action, const string& username) {
         try {
+            // Prepare SQL statement to insert an audit log entry
             unique_ptr<sql::PreparedStatement> pstmt(
                 conn->prepareStatement("INSERT INTO audit_logs (username, action, timestamp) VALUES (?, ?, NOW())")
             );
@@ -203,8 +210,10 @@ public:
         }
     }
 
+    // Logs an intrusion event with the IP address of the detected intrusion
     void detectIntrusion(const string& ipAddress) {
         try {
+            // Prepare SQL statement to insert an intrusion log entry
             unique_ptr<sql::PreparedStatement> pstmt(
                 conn->prepareStatement("INSERT INTO intrusion_logs (ip_address, timestamp) VALUES (?, NOW())")
             );
@@ -216,20 +225,94 @@ public:
         }
     }
 
+    // Initiates a data backup process
     void backupData() {
         cout << "Data backup in progress..." << endl;
     }
 
-    void whitelistIP(const string& ipAddress) {
+    // Enforces password policy requirements and updates password change timestamp
+    void enforcePasswordPolicy(const string& username, const string& password) {
         try {
+            // Check password for minimum length and complexity requirements
+            if (password.length() < 8 || 
+                password.find_first_of("0123456789") == string::npos ||
+                password.find_first_of("!@#$%^&*") == string::npos) {
+                throw runtime_error("Password does not meet complexity requirements");
+            }
+            
+            // Update password change timestamp in database
             unique_ptr<sql::PreparedStatement> pstmt(
-                conn->prepareStatement("INSERT INTO ip_whitelist (ip_address) VALUES (?)")
+                conn->prepareStatement("UPDATE users SET password_last_changed = NOW() WHERE username = ?")
             );
-            pstmt->setString(1, ipAddress);
+            pstmt->setString(1, username);
             pstmt->executeUpdate();
-            cout << "IP address " << ipAddress << " whitelisted." << endl;
+            cout << "Password policy enforced for user: " << username << endl;
+        } catch (const exception& e) {
+            cerr << "Error in enforcePasswordPolicy: " << e.what() << endl;
+        }
+    }
+
+    // Monitors suspicious activity by counting failed login attempts within the last hour
+    void monitorSuspiciousActivity(const string& username) {
+        try {
+            // Query for recent suspicious actions by the user within the last hour
+            unique_ptr<sql::PreparedStatement> pstmt(
+                conn->prepareStatement(
+                    "SELECT COUNT(*) FROM user_actions WHERE username = ? "
+                    "AND action_type IN ('failed_login', 'unauthorized_access') "
+                    "AND timestamp > DATE_SUB(NOW(), INTERVAL 1 HOUR)"
+                )
+            );
+            pstmt->setString(1, username);
+            unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+            
+            // Check if suspicious activity exceeds a certain threshold
+            if (res->next() && res->getInt(1) > 5) {
+                cout << "Suspicious activity detected for user: " << username << endl;
+                // Trigger account lockout or notification as needed
+            }
         } catch (sql::SQLException& e) {
-            cerr << "Error in whitelistIP: " << e.what() << endl;
+            cerr << "Error in monitorSuspiciousActivity: " << e.what() << endl;
+        }
+    }
+
+    // Encrypts sensitive data before storing it in the database
+    void encryptSensitiveData(const string& dataType, const string& data) {
+        try {
+            // Insert encrypted data entry using AES encryption with a specified key
+            unique_ptr<sql::PreparedStatement> pstmt(
+                conn->prepareStatement(
+                    "INSERT INTO encrypted_data (data_type, encrypted_content, encryption_timestamp) "
+                    "VALUES (?, AES_ENCRYPT(?, 'encryption_key'), NOW())"
+                )
+            );
+            pstmt->setString(1, dataType);
+            pstmt->setString(2, data);
+            pstmt->executeUpdate();
+            cout << "Data encrypted successfully for type: " << dataType << endl;
+        } catch (sql::SQLException& e) {
+            cerr << "Error in encryptSensitiveData: " << e.what() << endl;
+        }
+    }
+
+    // Performs a security audit by checking user account statuses and login activity
+    void performSecurityAudit() {
+        try {
+            // Query for users with multiple failed logins or prolonged inactivity
+            unique_ptr<sql::Statement> stmt(conn->createStatement());
+            unique_ptr<sql::ResultSet> res(stmt->executeQuery(
+                "SELECT username, role, last_login, failed_login_attempts "
+                "FROM users WHERE failed_login_attempts > 3 "
+                "OR DATEDIFF(NOW(), last_login) > 90"
+            ));
+            
+            // Output users requiring attention based on audit criteria
+            while (res->next()) {
+                cout << "Security audit flag: User " << res->getString("username") 
+                     << " requires attention" << endl;
+            }
+        } catch (sql::SQLException& e) {
+            cerr << "Error in performSecurityAudit: " << e.what() << endl;
         }
     }
 
