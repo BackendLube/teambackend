@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <unistd.h>
-#include <netinet/in.h>
+#include <winsock2.h>
 #include <sqlite3.h>
+#include <ws2tcpip.h>
 
 #define PORT 8080
 #define BACKLOG 5
@@ -109,54 +109,61 @@ void handle_request(int client_socket) {
 
 // Server setup
 int main() {
-    int server_socket, client_socket;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t client_len;
-
-    if (!openDatabase()) {
-        std::cerr << "Database connection failed!" << std::endl;
+    WSADATA wsaData;
+    int wsResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (wsResult != 0) {
+        std::cerr << "WSAStartup failed with error: " << wsResult << std::endl;
         return 1;
     }
 
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0) {
+    if (!openDatabase()) {
+        std::cerr << "Database connection failed!" << std::endl;
+        WSACleanup();  // Clean up Winsock before exit
+        return 1;
+    }
+
+    SOCKET server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (server_socket == INVALID_SOCKET) {
         std::cerr << "Failed to create socket." << std::endl;
-        closeDatabase();
+        WSACleanup();
         return 1;
     }
 
     int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)) == SOCKET_ERROR) {
         std::cerr << "Failed to set socket options." << std::endl;
-        close(server_socket);
-        closeDatabase();
+        closesocket(server_socket);
+        WSACleanup();
         return 1;
     }
 
+    sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    if (::bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
         std::cerr << "Failed to bind to port." << std::endl;
-        close(server_socket);
-        closeDatabase();
+        closesocket(server_socket);
+        WSACleanup();
         return 1;
     }
 
-    if (listen(server_socket, BACKLOG) < 0) {
+    if (listen(server_socket, BACKLOG) == SOCKET_ERROR) {
         std::cerr << "Listen failed." << std::endl;
-        close(server_socket);
-        closeDatabase();
+        closesocket(server_socket);
+        WSACleanup();
         return 1;
     }
 
     std::cout << "Server running on port " << PORT << "..." << std::endl;
 
-    client_len = sizeof(client_addr);
+    sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+
     while (true) {
-        client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
-        if (client_socket < 0) {
+        SOCKET client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
+        if (client_socket == INVALID_SOCKET) {
             std::cerr << "Failed to accept connection." << std::endl;
             continue;
         }
@@ -164,7 +171,8 @@ int main() {
         handle_request(client_socket);
     }
 
-    close(server_socket);
+    closesocket(server_socket);
+    WSACleanup();
     closeDatabase();
     return 0;
 }
