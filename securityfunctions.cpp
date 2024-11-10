@@ -117,3 +117,92 @@ void SecurityFunctions::handleSecurityBreach(const string& username, const strin
     // Additional breach handling logic
     cout << "Security breach detected for user: " << username << " from IP: " << ipAddress << endl;
 }
+//User role function
+bool SecurityFunctions::isValidRole(const string& role) {
+    return validRoles.find(role) != validRoles.end();
+}
+
+bool SecurityFunctions::hasPermissionToGrantRole(const string& granterUsername, const string& targetRole) {
+    try {
+        string granterRole = getCurrentRole(granterUsername);
+        
+        // Only Admins can grant Admin roles
+        if (targetRole == "Admin") {
+            return granterRole == "Admin";
+        }
+        
+        // Admins can grant any role
+        if (granterRole == "Admin") {
+            return true;
+        }
+        
+        // Employees can grant basic roles (Tenant, Maintenance)
+        if (granterRole == "Employee") {
+            return (targetRole == "Tenant" || targetRole == "Maintenance");
+        }
+        
+        // Other roles cannot grant roles
+        return false;
+        
+    } catch (const exception& e) {
+        cerr << "Error checking role permissions: " << e.what() << endl;
+        return false;
+    }
+}
+// log role changes
+void SecurityFunctions::logRoleChange(const string& username, const string& oldRole, const string& newRole) {
+    string logMessage = "Role change: User '" + username + "' from '" + 
+                       oldRole + "' to '" + newRole + "'";
+    system.logAuditEvent("role_change", logMessage);
+}
+
+// Public role management methods
+bool SecurityFunctions::grantRole(const string& granterUsername,
+                                const string& targetUsername, 
+                                const string& newRole) {
+    try {
+        // Validate the new role
+        if (!isValidRole(newRole)) {
+            cout << "Error: Invalid role specified." << endl;
+            system.logAuditEvent("invalid_role_grant_attempt", 
+                               "Attempt to grant invalid role: " + newRole);
+            return false;
+        }
+
+        // Check if granter has permission to assign this role
+        if (!hasPermissionToGrantRole(granterUsername, newRole)) {
+            cout << "Error: Insufficient permissions to grant this role." << endl;
+            system.logAuditEvent("unauthorized_role_grant_attempt",
+                               granterUsername + " attempted to grant " + newRole);
+            return false;
+        }
+
+        // Get current role of target user
+        string currentRole = getCurrentRole(targetUsername);
+        
+        // Check if it's the same role
+        if (currentRole == newRole) {
+            cout << "User already has this role." << endl;
+            return true;
+        }
+
+        // Grant the new role
+        system.grantRole(targetUsername, newRole);
+        
+        // Log the role change
+        logRoleChange(targetUsername, currentRole, newRole);
+        
+        // Monitor for suspicious activity
+        system.monitorSuspiciousActivity(targetUsername);
+        
+        cout << "Role successfully granted: " << newRole << " to user: " << targetUsername << endl;
+        return true;
+
+    } catch (const exception& e) {
+        cerr << "Error granting role: " << e.what() << endl;
+        system.logAuditEvent("role_grant_error", 
+                           "Error granting " + newRole + " to " + targetUsername);
+        return false;
+    }
+}
+
