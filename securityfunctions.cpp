@@ -3,25 +3,27 @@
 #include <ctime>
 #include <string>
 
+using namespace std;
+
 // Struct to store event data
 struct AuditEvent {
-    std::string event_type;
-    std::string username;
-    std::string details;
-    std::string timestamp;
+    string event_type;
+    string username;
+    string details;
+    string timestamp;
 };
 
 // Function to get current timestamp
-std::string getCurrentTimestamp() {
+string getCurrentTimestamp() {
     time_t now = time(0);
     tm* localtm = localtime(&now);
     char buffer[80];
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", localtm);
-    return std::string(buffer);
+    return string(buffer);
 }
 
 // Function to log audit events
-void logAuditEvent(const std::string& eventType, const std::string& username, const std::string& eventDetails) {
+void logAuditEvent(const string& eventType, const string& username, const string& eventDetails) {
     // Create an AuditEvent object
     AuditEvent event;
     event.event_type = eventType;
@@ -30,7 +32,7 @@ void logAuditEvent(const std::string& eventType, const std::string& username, co
     event.timestamp = getCurrentTimestamp();
 
     // Open the log file in append mode
-    std::ofstream logFile("audit_log.txt", std::ios::app);
+    ofstream logFile("audit_log.txt", ios::app);
     if (logFile.is_open()) {
         // Write the event data to the file
         logFile << "[" << event.timestamp << "] "
@@ -39,7 +41,7 @@ void logAuditEvent(const std::string& eventType, const std::string& username, co
                 << "Details: " << event.details << "\n";
         logFile.close();
     } else {
-        std::cerr << "Unable to open log file.\n";
+        cerr << "Unable to open log file.\n";
     }
 }
 
