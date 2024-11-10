@@ -44,12 +44,6 @@ void logAuditEvent(const string& eventType, const string& username, const string
         cerr << "Unable to open log file.\n";
     }
 }
-
-int main() {
-    // Example usage
-    logAuditEvent("Login", "admin", "Successful login from IP 192.168.0.1");
-    logAuditEvent("Password Change", "user1", "Password updated successfully.");
-    
     return 0;
 }
 
