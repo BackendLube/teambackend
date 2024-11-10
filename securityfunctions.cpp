@@ -149,7 +149,7 @@ bool SecurityFunctions::hasPermissionToGrantRole(const string& granterUsername, 
         return false;
     }
 }
-// log role changes
+
 void SecurityFunctions::logRoleChange(const string& username, const string& oldRole, const string& newRole) {
     string logMessage = "Role change: User '" + username + "' from '" + 
                        oldRole + "' to '" + newRole + "'";
