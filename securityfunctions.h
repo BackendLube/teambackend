@@ -25,6 +25,14 @@ private:
     bool hasPermissionToGrantRole(const string& granterUsername, const string& targetRole);
     void logRoleChange(const string& username, const string& oldRole, const string& newRole);
 
+    // Private helper methods for audit logging
+    string getCurrentTimestamp();
+    string formatLogMessage(const string& event, 
+                          const string& username, 
+                          const string& details);
+    string getSeverityLevel(const string& event);
+    bool isHighRiskEvent(const string& event);
+
 public:
     // Constructor takes a reference to PropertyManagementSystem
     SecurityFunctions(PropertyManagementSystem& sys) : system(sys) {}
@@ -49,7 +57,18 @@ public:
                    const string& targetUsername);
     string getCurrentRole(const string& username);
     bool hasRole(const string& username, const string& role);
-   
+
+    // Audit logging functions
+    bool logAuditEvent(const string& event, 
+                      const string& username,
+                      const string& details = "",
+                      const string& ipAddress = "");
+    bool logSecurityEvent(const string& event, 
+                         const string& username,
+                         const string& details = "");
+    vector<string> getRecentAuditLogs(const string& username, 
+                                    int numberOfLogs = 10);
+    bool clearAuditLogs(const string& adminUsername);
 };
 
 #endif 
