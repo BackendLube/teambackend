@@ -8,17 +8,36 @@
 #include <vector>
 #include <regex>
 #include <set>
+#include <chrono>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <map>
+#include <queue>
 
 using namespace std;
 
 class SecurityFunctions {
 private:
-    PropertyManagementSystem& system;  // Reference to the main system
-
-      // Set of valid roles
+    PropertyManagementSystem& system;
+    
+    // Set of valid roles
     const set<string> validRoles = {
-        "Admin", "Property Manager", "Tenant", "Investment Analyst"
+        "Admin", "Employee", "Tenant", "Owner", 
+        "Advisor", "IT", "Maintenance"
     };
+    
+    // Intrusion detection related members
+    struct LoginAttempt {
+        string ipAddress;
+        chrono::system_clock::time_point timestamp;
+    };
+    
+    map<string, queue<LoginAttempt>> loginAttempts;  // Track login attempts per IP
+    map<string, int> blacklistedIPs;                 // Track blocked IPs and their violation count
+    const int MAX_LOGIN_ATTEMPTS = 5;                // Maximum allowed login attempts
+    const int ATTEMPT_WINDOW_SECONDS = 300;          // Time window for tracking attempts (5 minutes)
+    const int BLACKLIST_THRESHOLD = 3;               // Number of violations before permanent blacklist
     
     // Private helper methods for role management
     bool isValidRole(const string& role);
@@ -33,23 +52,29 @@ private:
     string getSeverityLevel(const string& event);
     bool isHighRiskEvent(const string& event);
 
+    // Private helper methods for intrusion detection
+    void cleanupOldAttempts(const string& ipAddress);
+    bool isIPBlacklisted(const string& ipAddress);
+    void updateLoginAttempts(const string& ipAddress);
+    string analyzeIPPattern(const string& ipAddress);
+    bool isKnownMaliciousPattern(const string& pattern);
+
 public:
-    // Constructor takes a reference to PropertyManagementSystem
+    // Constructor
     SecurityFunctions(PropertyManagementSystem& sys) : system(sys) {}
 
-    // Password change function
+    // Password management functions
     bool handlePasswordChange(const string& username, 
                             const string& currentPassword, 
                             const string& newPassword, 
                             const string& confirmPassword);
-    
-    // Additional security functions can be added here
     bool validatePasswordStrength(const string& password);
-    void logSecurityEvent(const string& event, const string& username);
+    
+    // Basic security functions
     bool checkLoginAttempts(const string& username);
     void handleSecurityBreach(const string& username, const string& ipAddress);
 
-    // New role management functions
+    // Role management functions
     bool grantRole(const string& granterUsername,
                   const string& targetUsername, 
                   const string& newRole);
@@ -69,6 +94,19 @@ public:
     vector<string> getRecentAuditLogs(const string& username, 
                                     int numberOfLogs = 10);
     bool clearAuditLogs(const string& adminUsername);
+
+    // New intrusion detection functions
+    bool detectIntrusion(const string& ipAddress, 
+                        const string& username = "",
+                        const string& actionType = "");
+    void blacklistIP(const string& ipAddress, const string& reason);
+    bool isIPSuspicious(const string& ipAddress);
+    void clearBlacklist(const string& adminUsername);
+    vector<string> getBlacklistedIPs();
+    void handleFailedLogin(const string& username, const string& ipAddress);
+    void reportSuspiciousActivity(const string& ipAddress, 
+                                const string& activityType,
+                                const string& details = "");
 };
 
 #endif 
