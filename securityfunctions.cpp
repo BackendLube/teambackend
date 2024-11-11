@@ -1286,3 +1286,322 @@ bool SecurityFunctions::verifyFileIntegrity(const string& filename) {
         return false;
     }
 }
+
+// Private helper methods for session management
+string SecurityFunctions::generateSessionId() {
+    const string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(0, chars.length() - 1);
+    
+    string sessionId;
+    for (int i = 0; i < SESSION_ID_LENGTH; ++i) {
+        sessionId += chars[dis(gen)];
+    }
+    return sessionId;
+}
+
+void SecurityFunctions::cleanupExpiredSessions() {
+    auto now = chrono::system_clock::now();
+    vector<string> expiredSessions;
+    
+    for (const auto& [sessionId, session] : activeSessions) {
+        if (now > session.expiryTime) {
+            expiredSessions.push_back(sessionId);
+        }
+    }
+
+    for (const auto& sessionId : expiredSessions) {
+        logAuditEvent("session_expired", activeSessions[sessionId].username);
+        activeSessions.erase(sessionId);
+    }
+}
+
+bool SecurityFunctions::isValidSession(const string& sessionId) {
+    auto it = activeSessions.find(sessionId);
+    if (it == activeSessions.end()) {
+        return false;
+    }
+
+    auto now = chrono::system_clock::now();
+    return now <= it->second.expiryTime && it->second.isActive;
+}
+
+void SecurityFunctions::updateSessionActivity(const string& sessionId) {
+    auto it = activeSessions.find(sessionId);
+    if (it != activeSessions.end()) {
+        auto now = chrono::system_clock::now();
+        it->second.lastActivity = now;
+    }
+}
+
+void SecurityFunctions::terminateOldestSession(const string& username) {
+    string oldestSessionId;
+    chrono::system_clock::time_point oldestActivity;
+    bool found = false;
+
+    for (const auto& [sessionId, session] : activeSessions) {
+        if (session.username == username) {
+            if (!found || session.lastActivity < oldestActivity) {
+                oldestSessionId = sessionId;
+                oldestActivity = session.lastActivity;
+                found = true;
+            }
+        }
+    }
+
+    if (found) {
+        endSession(oldestSessionId);
+    }
+}
+
+// Public session management methods
+SecurityFunctions::SessionResult 
+SecurityFunctions::createSession(const string& username,
+                               const string& ipAddress,
+                               int timeoutMinutes) {
+    SessionResult result;
+    try {
+        cleanupExpiredSessions();
+
+        // Check concurrent sessions
+        int userSessions = 0;
+        for (const auto& [sessionId, session] : activeSessions) {
+            if (session.username == username) {
+                userSessions++;
+            }
+        }
+
+        if (userSessions >= MAX_CONCURRENT_SESSIONS) {
+            terminateOldestSession(username);
+        }
+
+        // Create new session
+        string sessionId = generateSessionId();
+        auto now = chrono::system_clock::now();
+
+        SessionInfo newSession {
+            sessionId,
+            username,
+            now,  // lastActivity
+            now + chrono::minutes(timeoutMinutes),  // expiryTime
+            ipAddress,
+            true,  // isActive
+            {}     // sessionData
+        };
+
+        activeSessions[sessionId] = newSession;
+        
+        logAuditEvent("session_created", username, 
+                     "IP: " + ipAddress + ", Timeout: " + to_string(timeoutMinutes));
+
+        result.success = true;
+        result.sessionId = sessionId;
+        result.message = "Session created successfully";
+
+    } catch (const exception& e) {
+        result.success = false;
+        result.message = "Failed to create session: " + string(e.what());
+        logSecurityEvent("session_creation_failed", username, e.what());
+    }
+
+    return result;
+}
+
+bool SecurityFunctions::validateSession(const string& sessionId) {
+    try {
+        cleanupExpiredSessions();
+
+        if (!isValidSession(sessionId)) {
+            return false;
+        }
+
+        updateSessionActivity(sessionId);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_validation_error", "", e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::endSession(const string& sessionId) {
+    try {
+        auto it = activeSessions.find(sessionId);
+        if (it == activeSessions.end()) {
+            return false;
+        }
+
+        string username = it->second.username;
+        activeSessions.erase(it);
+        
+        logAuditEvent("session_ended", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_end_error", "", e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::extendSession(const string& sessionId, int additionalMinutes) {
+    try {
+        auto it = activeSessions.find(sessionId);
+        if (!isValidSession(sessionId)) {
+            return false;
+        }
+
+        auto& session = it->second;
+        session.expiryTime += chrono::minutes(additionalMinutes);
+        
+        logAuditEvent("session_extended", session.username,
+                     "Extended by " + to_string(additionalMinutes) + " minutes");
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_extension_error", "", e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::checkSessionTimeout(const string& sessionId) {
+    try {
+        auto it = activeSessions.find(sessionId);
+        if (it == activeSessions.end()) {
+            return true;  // Session doesn't exist, consider it timed out
+        }
+
+        auto now = chrono::system_clock::now();
+        auto& session = it->second;
+
+        // Check if session has expired
+        if (now > session.expiryTime) {
+            logAuditEvent("session_timeout", session.username);
+            activeSessions.erase(it);
+            return true;
+        }
+
+        // Check if session has been inactive
+        auto inactiveTime = chrono::duration_cast<chrono::minutes>(
+            now - session.lastActivity).count();
+            
+        if (inactiveTime >= DEFAULT_SESSION_TIMEOUT) {
+            logAuditEvent("session_inactive_timeout", session.username);
+            activeSessions.erase(it);
+            return true;
+        }
+
+        return false;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_timeout_check_error", "", e.what());
+        return true;  // Consider it timed out on error
+    }
+}
+
+bool SecurityFunctions::updateSessionData(const string& sessionId,
+                                        const string& key,
+                                        const string& value) {
+    try {
+        if (!isValidSession(sessionId)) {
+            return false;
+        }
+
+        activeSessions[sessionId].sessionData[key] = value;
+        updateSessionActivity(sessionId);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_data_update_error", "", e.what());
+        return false;
+    }
+}
+
+string SecurityFunctions::getSessionData(const string& sessionId, const string& key) {
+    try {
+        if (!isValidSession(sessionId)) {
+            return "";
+        }
+
+        auto& session = activeSessions[sessionId];
+        auto it = session.sessionData.find(key);
+        if (it == session.sessionData.end()) {
+            return "";
+        }
+
+        updateSessionActivity(sessionId);
+        return it->second;
+
+    } catch (const exception& e) {
+        logSecurityEvent("session_data_retrieval_error", "", e.what());
+        return "";
+    }
+}
+
+bool SecurityFunctions::forceLogout(const string& username) {
+    try {
+        vector<string> userSessions;
+        for (const auto& [sessionId, session] : activeSessions) {
+            if (session.username == username) {
+                userSessions.push_back(sessionId);
+            }
+        }
+
+        for (const auto& sessionId : userSessions) {
+            endSession(sessionId);
+        }
+
+        logAuditEvent("force_logout", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("force_logout_error", username, e.what());
+        return false;
+    }
+}
+
+vector<SecurityFunctions::SessionInfo> SecurityFunctions::getActiveSessions(const string& username) {
+    vector<SessionInfo> sessions;
+    cleanupExpiredSessions();
+
+    for (const auto& [sessionId, session] : activeSessions) {
+        if (session.username == username) {
+            sessions.push_back(session);
+        }
+    }
+
+    return sessions;
+}
+
+map<string, int> SecurityFunctions::getSessionStatistics() {
+    map<string, int> stats;
+    cleanupExpiredSessions();
+
+    stats["total_active_sessions"] = activeSessions.size();
+    
+    map<string, int> userSessions;
+    for (const auto& [sessionId, session] : activeSessions) {
+        userSessions[session.username]++;
+    }
+    
+    stats["unique_users"] = userSessions.size();
+    stats["max_sessions_per_user"] = 0;
+    
+    for (const auto& [username, count] : userSessions) {
+        stats["max_sessions_per_user"] = max(stats["max_sessions_per_user"], count);
+    }
+
+    return stats;
+}
+
+bool SecurityFunctions::isUserLoggedIn(const string& username) {
+    cleanupExpiredSessions();
+    
+    for (const auto& [sessionId, session] : activeSessions) {
+        if (session.username == username && session.isActive) {
+            return true;
+        }
+    }
+    
+    return false;
+}
