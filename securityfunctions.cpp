@@ -1383,11 +1383,11 @@ SecurityFunctions::createSession(const string& username,
         SessionInfo newSession {
             sessionId,
             username,
-            now,  // lastActivity
-            now + chrono::minutes(timeoutMinutes),  // expiryTime
+            now,  
+            now + chrono::minutes(timeoutMinutes),  
             ipAddress,
-            true,  // isActive
-            {}     // sessionData
+            true,  
+            {}     
         };
 
         activeSessions[sessionId] = newSession;
@@ -1495,7 +1495,7 @@ bool SecurityFunctions::checkSessionTimeout(const string& sessionId) {
 
     } catch (const exception& e) {
         logSecurityEvent("session_timeout_check_error", "", e.what());
-        return true;  // Consider it timed out on error
+        return true;  // timed out on error
     }
 }
 
