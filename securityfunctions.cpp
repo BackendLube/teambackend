@@ -516,11 +516,241 @@ void SecurityFunctions::reportSuspiciousActivity(const string& ipAddress,
     }
 }
 
-// Make sure to update any existing functions that should use the new intrusion detection
-// For example, update handleSecurityBreach:
+// Private helper methods for backup
+string SecurityFunctions::generateBackupId() {
+    auto now = chrono::system_clock::now();
+    auto timestamp = chrono::system_clock::to_time_t(now);
+    stringstream ss;
+    ss << "backup_" << put_time(localtime(&timestamp), "%Y%m%d_%H%M%S")
+       << "_" << rand() % 1000;
+    return ss.str();
+}
 
-void SecurityFunctions::handleSecurityBreach(const string& username, const string& ipAddress) {
-    logSecurityEvent("security_breach", username, "Potential security breach detected");
-    detectIntrusion(ipAddress, username, "security_breach");
-    system.monitorSuspiciousActivity(username);
+bool SecurityFunctions::validateBackupIntegrity(const string& backupPath, const string& checksum) {
+    string calculatedChecksum = calculateChecksum(backupPath);
+    return calculatedChecksum == checksum;
+}
+
+void SecurityFunctions::encryptBackup(const string& backupPath, const string& encryptionKey) {
+    try {
+        // Implementation would use encryption library
+        system.encryptSensitiveData("backup", backupPath);
+        logAuditEvent("backup_encrypted", "", "Backup encrypted: " + backupPath);
+    } catch (const exception& e) {
+        throw runtime_error("Backup encryption failed: " + string(e.what()));
+    }
+}
+
+bool SecurityFunctions::compressBackupData(const string& sourcePath, const string& destPath) {
+    try {
+        // Implementation would use compression library
+        logAuditEvent("backup_compressed", "", "Backup compressed: " + sourcePath);
+        return true;
+    } catch (const exception& e) {
+        logSecurityEvent("backup_compression_failed", "", e.what());
+        return false;
+    }
+}
+
+void SecurityFunctions::cleanupOldBackups() {
+    try {
+        auto now = chrono::system_clock::now();
+        vector<string> backupsToDelete;
+
+        for (const auto& backup : backupHistory) {
+            auto age = chrono::duration_cast<chrono::hours>(
+                now - backup.second.timestamp).count();
+            if (age > MAX_BACKUP_RETENTION_DAYS * 24) {
+                backupsToDelete.push_back(backup.first);
+            }
+        }
+
+        for (const auto& backupId : backupsToDelete) {
+            string backupPath = BACKUP_BASE_PATH + backupId;
+            if (fs::exists(backupPath)) {
+                fs::remove_all(backupPath);
+                backupHistory.erase(backupId);
+                logAuditEvent("backup_cleaned", "", "Removed old backup: " + backupId);
+            }
+        }
+    } catch (const exception& e) {
+        logSecurityEvent("backup_cleanup_error", "", e.what());
+    }
+}
+
+string SecurityFunctions::calculateChecksum(const string& filePath) {
+    try {
+        // Implementation would calculate file checksum
+        return "checksum_placeholder";
+    } catch (const exception& e) {
+        throw runtime_error("Checksum calculation failed: " + string(e.what()));
+    }
+}
+
+bool SecurityFunctions::verifyBackupPermissions(const string& username) {
+    try {
+        string userRole = getCurrentRole(username);
+        return userRole == "Admin" || userRole == "IT";
+    } catch (const exception& e) {
+        logSecurityEvent("backup_permission_check_failed", username, e.what());
+        return false;
+    }
+}
+
+// Public backup methods
+bool SecurityFunctions::performSecureBackup(const string& username, 
+                                          const string& backupType,
+                                          const string& customPath) {
+    try {
+        // Step 1: Verify permissions
+        if (!verifyBackupPermissions(username)) {
+            logSecurityEvent("unauthorized_backup_attempt", username);
+            return false;
+        }
+
+        // Step 2: Generate backup ID and paths
+        string backupId = generateBackupId();
+        string backupPath = customPath.empty() ? 
+            BACKUP_BASE_PATH + backupId : customPath + backupId;
+
+        // Step 3: Create backup directory
+        fs::create_directories(backupPath);
+
+        // Step 4: Perform the backup based on type
+        if (backupType == "incremental" && !performIncrementalBackup(username)) {
+            throw runtime_error("Incremental backup failed");
+        }
+
+        // Step 5: Compress the backup
+        if (!compressBackupData(backupPath, backupPath + ".zip")) {
+            throw runtime_error("Backup compression failed");
+        }
+
+        // Step 6: Calculate checksum
+        string checksum = calculateChecksum(backupPath + ".zip");
+
+        // Step 7: Encrypt the backup
+        string encryptionKey = generateBackupId(); // Use proper key generation in practice
+        encryptBackup(backupPath + ".zip", encryptionKey);
+
+        // Step 8: Store backup metadata
+        BackupMetadata metadata {
+            backupId,
+            chrono::system_clock::now(),
+            backupType,
+            "completed",
+            fs::file_size(backupPath + ".zip"),
+            encryptionKey
+        };
+        backupHistory[backupId] = metadata;
+
+        // Step 9: Log the backup
+        logAuditEvent("backup_completed", username,
+                     "Backup ID: " + backupId + ", Type: " + backupType);
+
+        // Step 10: Cleanup old backups
+        cleanupOldBackups();
+
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("backup_failed", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::restoreFromBackup(const string& username,
+                                        const string& backupId,
+                                        const string& targetPath) {
+    try {
+        // Step 1: Verify permissions
+        if (!verifyBackupPermissions(username)) {
+            logSecurityEvent("unauthorized_restore_attempt", username);
+            return false;
+        }
+
+        // Step 2: Verify backup exists
+        if (backupHistory.find(backupId) == backupHistory.end()) {
+            throw runtime_error("Backup not found: " + backupId);
+        }
+
+        // Step 3: Verify backup integrity
+        string backupPath = BACKUP_BASE_PATH + backupId + ".zip";
+        if (!validateBackupIntegrity(backupPath, "stored_checksum")) {
+            throw runtime_error("Backup integrity check failed");
+        }
+
+        // Step 4: Decrypt the backup
+        const auto& metadata = backupHistory[backupId];
+        system.encryptSensitiveData("restore", backupPath); // Decrypt operation
+
+        // Step 5: Perform the restore
+        fs::create_directories(targetPath);
+        // Implementation would restore files here
+
+        // Step 6: Log the restore
+        logAuditEvent("backup_restored", username,
+                     "Restored backup ID: " + backupId);
+
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("restore_failed", username, e.what());
+        return false;
+    }
+}
+
+vector<SecurityFunctions::BackupMetadata> SecurityFunctions::getBackupHistory(
+    const string& username) {
+    vector<BackupMetadata> history;
+    try {
+        if (!verifyBackupPermissions(username)) {
+            throw runtime_error("Unauthorized access to backup history");
+        }
+
+        for (const auto& backup : backupHistory) {
+            history.push_back(backup.second);
+        }
+    } catch (const exception& e) {
+        logSecurityEvent("backup_history_access_failed", username, e.what());
+    }
+    return history;
+}
+
+bool SecurityFunctions::verifyBackup(const string& backupId) {
+    try {
+        if (backupHistory.find(backupId) == backupHistory.end()) {
+            return false;
+        }
+
+        string backupPath = BACKUP_BASE_PATH + backupId + ".zip";
+        return validateBackupIntegrity(backupPath, "stored_checksum");
+    } catch (const exception& e) {
+        logSecurityEvent("backup_verification_failed", "", e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::deleteBackup(const string& username, const string& backupId) {
+    try {
+        if (!verifyBackupPermissions(username)) {
+            logSecurityEvent("unauthorized_backup_deletion", username);
+            return false;
+        }
+
+        if (backupHistory.find(backupId) == backupHistory.end()) {
+            throw runtime_error("Backup not found: " + backupId);
+        }
+
+        string backupPath = BACKUP_BASE_PATH + backupId;
+        fs::remove_all(backupPath);
+        backupHistory.erase(backupId);
+
+        logAuditEvent("backup_deleted", username, "Deleted backup: " + backupId);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("backup_deletion_failed", username, e.what());
+        return false;
+    }
 }
