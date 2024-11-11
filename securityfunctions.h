@@ -86,9 +86,9 @@ private:
 
     // whitelist-related members
     set<string> whitelistedIPs;
-    map<string, string> whitelistReasons;    // IP -> Reason
-    map<string, string> whitelistApprovers;  // IP -> Approver
-    map<string, chrono::system_clock::time_point> whitelistExpiry; // IP -> Expiry time
+    map<string, string> whitelistReasons;   
+    map<string, string> whitelistApprovers; 
+    map<string, chrono::system_clock::time_point> whitelistExpiry;
 
     // Private helper methods for whitelist
     bool validateIPFormat(const string& ipAddress);
@@ -103,7 +103,7 @@ private:
         ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", 
         ".png", ".csv", ".xlsx", ".xls"
     };
-    const size_t MAX_FILE_SIZE = 10 * 1024 * 1024;  // 10MB
+    const size_t MAX_FILE_SIZE = 10 * 1024 * 1024;  
     const map<string, string> mimeTypes = {
         {".pdf", "application/pdf"},
         {".doc", "application/msword"},
