@@ -98,6 +98,49 @@ private:
                            const string& action, 
                            const string& username);
 
+ // New file validation related members
+    const set<string> allowedFileExtensions = {
+        ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", 
+        ".png", ".csv", ".xlsx", ".xls"
+    };
+    const size_t MAX_FILE_SIZE = 10 * 1024 * 1024;  // 10MB
+    const map<string, string> mimeTypes = {
+        {".pdf", "application/pdf"},
+        {".doc", "application/msword"},
+        {".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        {".txt", "text/plain"},
+        {".jpg", "image/jpeg"},
+        {".jpeg", "image/jpeg"},
+        {".png", "image/png"},
+        {".csv", "text/csv"},
+        {".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+        {".xls", "application/vnd.ms-excel"}
+    };
+
+    struct FileMetadata {
+        string filename;
+        string mimeType;
+        size_t fileSize;
+        string uploadedBy;
+        chrono::system_clock::time_point uploadTime;
+        string checksum;
+        bool isScanned;
+        bool isSafe;
+    };
+
+    map<string, FileMetadata> fileRegistry;
+
+    // Private helper methods for file validation
+    bool isFileExtensionAllowed(const string& filename);
+    string getFileExtension(const string& filename);
+    string getMimeType(const string& filename);
+    bool scanForMalware(const string& filePath);
+    string calculateFileChecksum(const string& filePath);
+    bool validateFileContent(const string& filePath, const string& expectedMimeType);
+    void logFileActivity(const string& filename, 
+                        const string& action, 
+                        const string& username);
+
 public:
     // Constructor
     SecurityFunctions(PropertyManagementSystem& sys) : system(sys) {}
@@ -186,6 +229,29 @@ public:
     vector<string> getExpiringWhitelists(int daysToExpiry = 7);
     void exportWhitelist(const string& filePath);
     bool importWhitelist(const string& filePath, const string& username);
+
+// New file validation methods
+    struct FileValidationResult {
+        bool isValid;
+        vector<string> errors;
+        FileMetadata metadata;
+    };
+
+    FileValidationResult validateFileUpload(const string& filePath,
+                                          const string& username,
+                                          const set<string>& allowedTypes = {});
+    bool processFileUpload(const string& filePath,
+                          const string& username,
+                          const string& destinationPath);
+    bool deleteFile(const string& filename, const string& username);
+    vector<FileMetadata> getFileHistory(const string& username);
+    bool quarantineFile(const string& filename, const string& username);
+    bool restoreFile(const string& filename, const string& username);
+    bool isFileQuarantined(const string& filename);
+    vector<FileMetadata> getQuarantinedFiles();
+    void cleanupOldFiles(int daysToKeep = 30);
+    map<string, int> getFileStatistics();
+    bool verifyFileIntegrity(const string& filename);
 };
 
 #endif 
