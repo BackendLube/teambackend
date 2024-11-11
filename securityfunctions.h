@@ -141,6 +141,275 @@ private:
                         const string& action, 
                         const string& username);
 
+// Private helper methods for file validation
+bool SecurityFunctions::isFileExtensionAllowed(const string& filename) {
+    string ext = getFileExtension(filename);
+    transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    return allowedFileExtensions.find(ext) != allowedFileExtensions.end();
+}
+
+string SecurityFunctions::getFileExtension(const string& filename) {
+    size_t pos = filename.find_last_of(".");
+    return (pos == string::npos) ? "" : filename.substr(pos);
+}
+
+string SecurityFunctions::getMimeType(const string& filename) {
+    string ext = getFileExtension(filename);
+    transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    auto it = mimeTypes.find(ext);
+    return (it != mimeTypes.end()) ? it->second : "application/octet-stream";
+}
+
+bool SecurityFunctions::scanForMalware(const string& filePath) {
+    try {
+        // Implement actual malware scanning here
+        // This is a placeholder implementation
+        logAuditEvent("malware_scan", "", "Scanning file: " + filePath);
+        return true;  // File is safe
+    } catch (const exception& e) {
+        logSecurityEvent("malware_scan_error", "", e.what());
+        return false;
+    }
+}
+
+string SecurityFunctions::calculateFileChecksum(const string& filePath) {
+    try {
+        // Implement actual checksum calculation here
+        // This is a placeholder implementation
+        return "checksum_placeholder";
+    } catch (const exception& e) {
+        throw runtime_error("Failed to calculate checksum: " + string(e.what()));
+    }
+}
+
+bool SecurityFunctions::validateFileContent(const string& filePath, const string& expectedMimeType) {
+    try {
+        // Implement actual file content validation here
+        // This is a placeholder implementation
+        return true;
+    } catch (const exception& e) {
+        logSecurityEvent("content_validation_error", "", e.what());
+        return false;
+    }
+}
+
+void SecurityFunctions::logFileActivity(const string& filename, 
+                                      const string& action, 
+                                      const string& username) {
+    string details = "File: " + filename + ", Action: " + action;
+    logAuditEvent("file_activity", username, details);
+}
+
+// Public file validation methods
+SecurityFunctions::FileValidationResult 
+SecurityFunctions::validateFileUpload(const string& filePath,
+                                    const string& username,
+                                    const set<string>& allowedTypes) {
+    FileValidationResult result;
+    result.isValid = true;
+    
+    try {
+        // Step 1: Basic file checks
+        fs::path path(filePath);
+        string filename = path.filename().string();
+
+        // Check if file exists
+        if (!fs::exists(filePath)) {
+            result.errors.push_back("File does not exist");
+            result.isValid = false;
+            return result;
+        }
+
+        // Step 2: File size check
+        size_t fileSize = fs::file_size(filePath);
+        if (fileSize > MAX_FILE_SIZE) {
+            result.errors.push_back("File exceeds maximum size limit");
+            result.isValid = false;
+        }
+
+        // Step 3: File extension check
+        if (!isFileExtensionAllowed(filename)) {
+            result.errors.push_back("File type not allowed");
+            result.isValid = false;
+        }
+
+        // Step 4: Custom allowed types check
+        if (!allowedTypes.empty()) {
+            string ext = getFileExtension(filename);
+            if (allowedTypes.find(ext) == allowedTypes.end()) {
+                result.errors.push_back("File type not in allowed list");
+                result.isValid = false;
+            }
+        }
+
+        // Step 5: MIME type validation
+        string expectedMimeType = getMimeType(filename);
+        if (!validateFileContent(filePath, expectedMimeType)) {
+            result.errors.push_back("File content does not match extension");
+            result.isValid = false;
+        }
+
+        // Step 6: Malware scan
+        if (!scanForMalware(filePath)) {
+            result.errors.push_back("File failed security scan");
+            result.isValid = false;
+        }
+
+        // Step 7: Create metadata
+        if (result.isValid) {
+            string checksum = calculateFileChecksum(filePath);
+            result.metadata = {
+                filename,
+                expectedMimeType,
+                fileSize,
+                username,
+                chrono::system_clock::now(),
+                checksum,
+                true,  // isScanned
+                true   // isSafe
+            };
+
+            // Register the file
+            fileRegistry[filename] = result.metadata;
+            
+            // Log successful validation
+            logFileActivity(filename, "validated", username);
+        } else {
+            // Log failed validation
+            string errorList = "Errors: ";
+            for (const auto& error : result.errors) {
+                errorList += error + "; ";
+            }
+            logSecurityEvent("file_validation_failed", username, errorList);
+        }
+
+    } catch (const exception& e) {
+        result.isValid = false;
+        result.errors.push_back("Validation error: " + string(e.what()));
+        logSecurityEvent("file_validation_error", username, e.what());
+    }
+
+    return result;
+}
+
+bool SecurityFunctions::processFileUpload(const string& filePath,
+                                        const string& username,
+                                        const string& destinationPath) {
+    try {
+        // Step 1: Validate file
+        auto validationResult = validateFileUpload(filePath, username);
+        if (!validationResult.isValid) {
+            return false;
+        }
+
+        // Step 2: Create destination directory if it doesn't exist
+        fs::create_directories(destinationPath);
+
+        // Step 3: Generate unique filename to prevent overwrites
+        fs::path sourcePath(filePath);
+        string filename = sourcePath.filename().string();
+        string uniqueFilename = filename;
+        int counter = 1;
+        
+        while (fs::exists(destinationPath + "/" + uniqueFilename)) {
+            string extension = getFileExtension(filename);
+            string baseName = filename.substr(0, filename.length() - extension.length());
+            uniqueFilename = baseName + "_" + to_string(counter++) + extension;
+        }
+
+        // Step 4: Copy file to destination
+        fs::copy(filePath, destinationPath + "/" + uniqueFilename);
+
+        // Step 5: Update file registry
+        fileRegistry[uniqueFilename] = validationResult.metadata;
+
+        // Step 6: Log successful upload
+        logFileActivity(uniqueFilename, "uploaded", username);
+
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("file_upload_error", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::deleteFile(const string& filename, const string& username) {
+    try {
+        // Check permissions
+        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
+            logSecurityEvent("unauthorized_file_deletion", username);
+            return false;
+        }
+
+        auto it = fileRegistry.find(filename);
+        if (it == fileRegistry.end()) {
+            logSecurityEvent("file_not_found", username, "File: " + filename);
+            return false;
+        }
+
+        // Delete file
+        fs::remove(filename);
+        fileRegistry.erase(it);
+        
+        logFileActivity(filename, "deleted", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("file_deletion_error", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::quarantineFile(const string& filename, const string& username) {
+    try {
+        auto it = fileRegistry.find(filename);
+        if (it == fileRegistry.end()) {
+            return false;
+        }
+
+        // Move to quarantine directory
+        fs::path quarantinePath = "/quarantine/" + filename;
+        fs::create_directories(quarantinePath.parent_path());
+        fs::rename(filename, quarantinePath);
+
+        // Update metadata
+        it->second.isSafe = false;
+        
+        logFileActivity(filename, "quarantined", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("quarantine_error", username, e.what());
+        return false;
+    }
+}
+
+map<string, int> SecurityFunctions::getFileStatistics() {
+    map<string, int> stats;
+    for (const auto& file : fileRegistry) {
+        string ext = getFileExtension(file.first);
+        stats[ext]++;
+    }
+    return stats;
+}
+
+bool SecurityFunctions::verifyFileIntegrity(const string& filename) {
+    try {
+        auto it = fileRegistry.find(filename);
+        if (it == fileRegistry.end()) {
+            return false;
+        }
+
+        string currentChecksum = calculateFileChecksum(filename);
+        return currentChecksum == it->second.checksum;
+
+    } catch (const exception& e) {
+        logSecurityEvent("integrity_check_error", "", e.what());
+        return false;
+    }
+}
+
 public:
     // Constructor
     SecurityFunctions(PropertyManagementSystem& sys) : system(sys) {}
@@ -252,6 +521,29 @@ public:
     void cleanupOldFiles(int daysToKeep = 30);
     map<string, int> getFileStatistics();
     bool verifyFileIntegrity(const string& filename);
+
+// New session management methods
+    struct SessionResult {
+        bool success;
+        string sessionId;
+        string message;
+
+    SessionResult createSession(const string& username, 
+                              const string& ipAddress,
+                              int timeoutMinutes = 30);
+    bool validateSession(const string& sessionId);
+    bool endSession(const string& sessionId);
+    bool extendSession(const string& sessionId, int additionalMinutes);
+    bool forceLogout(const string& username);
+    vector<SessionInfo> getActiveSessions(const string& username);
+    bool checkSessionTimeout(const string& sessionId);
+    bool updateSessionData(const string& sessionId, 
+                          const string& key, 
+                          const string& value);
+    string getSessionData(const string& sessionId, const string& key);
+    bool terminateAllSessions(const string& username);
+    map<string, int> getSessionStatistics();
+    bool isUserLoggedIn(const string& username);
 };
 
 #endif 
