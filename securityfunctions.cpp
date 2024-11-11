@@ -317,7 +317,8 @@ bool SecurityFunctions::checkLoginAttempts(const string& username) {
 
 void SecurityFunctions::handleSecurityBreach(const string& username, const string& ipAddress) {
     logSecurityEvent("security_breach", username, "Potential security breach detected");
-    system.detectIntrusion(ipAddress);
+    detectIntrusion(ipAddress, username, "security_breach");
+    system.monitorSuspiciousActivity(username);
 }
 
 string SecurityFunctions::getCurrentRole(const string& username) {
@@ -327,4 +328,199 @@ string SecurityFunctions::getCurrentRole(const string& username) {
 
 bool SecurityFunctions::hasRole(const string& username, const string& role) {
     return getCurrentRole(username) == role;
+}
+
+// Private helper methods for intrusion detection
+void SecurityFunctions::cleanupOldAttempts(const string& ipAddress) {
+    if (loginAttempts.find(ipAddress) == loginAttempts.end()) {
+        return;
+    }
+
+    auto& attempts = loginAttempts[ipAddress];
+    auto now = chrono::system_clock::now();
+
+    while (!attempts.empty()) {
+        auto& oldestAttempt = attempts.front();
+        auto seconds = chrono::duration_cast<chrono::seconds>(
+            now - oldestAttempt.timestamp).count();
+        
+        if (seconds > ATTEMPT_WINDOW_SECONDS) {
+            attempts.pop();
+        } else {
+            break;
+        }
+    }
+}
+
+bool SecurityFunctions::isIPBlacklisted(const string& ipAddress) {
+    return blacklistedIPs.find(ipAddress) != blacklistedIPs.end();
+}
+
+void SecurityFunctions::updateLoginAttempts(const string& ipAddress) {
+    LoginAttempt attempt = {
+        ipAddress,
+        chrono::system_clock::now()
+    };
+    
+    if (loginAttempts.find(ipAddress) == loginAttempts.end()) {
+        queue<LoginAttempt> newQueue;
+        loginAttempts[ipAddress] = newQueue;
+    }
+    
+    loginAttempts[ipAddress].push(attempt);
+    cleanupOldAttempts(ipAddress);
+}
+
+string SecurityFunctions::analyzeIPPattern(const string& ipAddress) {
+    // Implement pattern analysis logic here
+    // For example, check if IP is from known malicious ranges
+    // or if it follows suspicious patterns
+    return "normal"; // Replace with actual pattern analysis
+}
+
+bool SecurityFunctions::isKnownMaliciousPattern(const string& pattern) {
+    // Check against known malicious patterns
+    return false; // Replace with actual pattern checking
+}
+
+// Public intrusion detection methods
+bool SecurityFunctions::detectIntrusion(const string& ipAddress, 
+                                     const string& username,
+                                     const string& actionType) {
+    try {
+        // Step 1: Check if IP is already blacklisted
+        if (isIPBlacklisted(ipAddress)) {
+            logSecurityEvent("blocked_blacklisted_ip", username,
+                           "Blocked attempt from blacklisted IP: " + ipAddress);
+            return true;
+        }
+
+        // Step 2: Update and check login attempts
+        updateLoginAttempts(ipAddress);
+        auto& attempts = loginAttempts[ipAddress];
+        
+        if (attempts.size() >= MAX_LOGIN_ATTEMPTS) {
+            blacklistIP(ipAddress, "Exceeded maximum login attempts");
+            logSecurityEvent("ip_blacklisted", username,
+                           "IP blacklisted for excessive attempts: " + ipAddress);
+            return true;
+        }
+
+        // Step 3: Analyze IP pattern
+        string pattern = analyzeIPPattern(ipAddress);
+        if (isKnownMaliciousPattern(pattern)) {
+            blacklistIP(ipAddress, "Matched malicious pattern: " + pattern);
+            logSecurityEvent("malicious_pattern_detected", username,
+                           "Malicious pattern from IP: " + ipAddress);
+            return true;
+        }
+
+        // Step 4: Check for suspicious activity patterns
+        if (isIPSuspicious(ipAddress)) {
+            logSecurityEvent("suspicious_activity", username,
+                           "Suspicious activity detected from IP: " + ipAddress);
+            system.monitorSuspiciousActivity(username);
+            return true;
+        }
+
+        // Step 5: Log the activity
+        if (!actionType.empty()) {
+            logAuditEvent("security_check", username,
+                         "Action type: " + actionType, ipAddress);
+        }
+
+        return false;
+
+    } catch (const exception& e) {
+        cerr << "Error in intrusion detection: " << e.what() << endl;
+        logSecurityEvent("intrusion_detection_error", username, e.what());
+        return false;
+    }
+}
+
+void SecurityFunctions::blacklistIP(const string& ipAddress, const string& reason) {
+    blacklistedIPs[ipAddress]++;
+    
+    if (blacklistedIPs[ipAddress] >= BLACKLIST_THRESHOLD) {
+        logSecurityEvent("permanent_ip_blacklist", "",
+                        "IP: " + ipAddress + " permanently blacklisted. Reason: " + reason);
+    } else {
+        logSecurityEvent("temporary_ip_blacklist", "",
+                        "IP: " + ipAddress + " temporarily blacklisted. Reason: " + reason);
+    }
+}
+
+bool SecurityFunctions::isIPSuspicious(const string& ipAddress) {
+    cleanupOldAttempts(ipAddress);
+    
+    if (loginAttempts.find(ipAddress) == loginAttempts.end()) {
+        return false;
+    }
+
+    // Check for rapid successive attempts
+    auto& attempts = loginAttempts[ipAddress];
+    if (attempts.size() >= 3) {  // Threshold for suspicious activity
+        auto now = chrono::system_clock::now();
+        auto oldestAttempt = attempts.front().timestamp;
+        auto seconds = chrono::duration_cast<chrono::seconds>(
+            now - oldestAttempt).count();
+        
+        // If 3 or more attempts within 60 seconds
+        if (seconds < 60) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void SecurityFunctions::clearBlacklist(const string& adminUsername) {
+    if (!hasRole(adminUsername, "Admin")) {
+        logSecurityEvent("unauthorized_blacklist_clear", adminUsername,
+                        "Attempted to clear IP blacklist without admin privileges");
+        return;
+    }
+
+    blacklistedIPs.clear();
+    logAuditEvent("blacklist_cleared", adminUsername);
+}
+
+vector<string> SecurityFunctions::getBlacklistedIPs() {
+    vector<string> ips;
+    for (const auto& pair : blacklistedIPs) {
+        ips.push_back(pair.first);
+    }
+    return ips;
+}
+
+void SecurityFunctions::handleFailedLogin(const string& username, const string& ipAddress) {
+    updateLoginAttempts(ipAddress);
+    
+    if (detectIntrusion(ipAddress, username, "failed_login")) {
+        logSecurityEvent("login_attempt_blocked", username,
+                        "Failed login attempt blocked from IP: " + ipAddress);
+    }
+}
+
+void SecurityFunctions::reportSuspiciousActivity(const string& ipAddress,
+                                               const string& activityType,
+                                               const string& details) {
+    string fullDetails = "Activity Type: " + activityType + 
+                        (details.empty() ? "" : ", Details: " + details);
+    
+    logSecurityEvent("suspicious_activity_reported", "",
+                    fullDetails + " from IP: " + ipAddress);
+                    
+    if (isIPSuspicious(ipAddress)) {
+        blacklistIP(ipAddress, "Multiple suspicious activities reported");
+    }
+}
+
+// Make sure to update any existing functions that should use the new intrusion detection
+// For example, update handleSecurityBreach:
+
+void SecurityFunctions::handleSecurityBreach(const string& username, const string& ipAddress) {
+    logSecurityEvent("security_breach", username, "Potential security breach detected");
+    detectIntrusion(ipAddress, username, "security_breach");
+    system.monitorSuspiciousActivity(username);
 }
