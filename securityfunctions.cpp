@@ -138,7 +138,7 @@ bool SecurityFunctions::hasPermissionToGrantRole(const string& granterUsername, 
         
         // Employees can grant basic roles (Tenant, Maintenance)
         if (granterRole == "Employee") {
-            return (targetRole == "Tenant" || targetRole == "Maintenance");
+            return (targetRole == "Tenant" || targetRole == "Anaylist");
         }
         
         // Other roles cannot grant roles
@@ -206,3 +206,125 @@ bool SecurityFunctions::grantRole(const string& granterUsername,
     }
 }
 
+// Audit Logging Functions
+string SecurityFunctions::getCurrentTimestamp() {
+    auto now = chrono::system_clock::now();
+    auto time = chrono::system_clock::to_time_t(now);
+    auto ms = chrono::duration_cast<chrono::milliseconds>(
+        now.time_since_epoch()) % 1000;
+    
+    stringstream ss;
+    ss << put_time(localtime(&time), "%Y-%m-%d %H:%M:%S");
+    ss << '.' << setfill('0') << setw(3) << ms.count();
+    
+    return ss.str();
+}
+
+string SecurityFunctions::formatLogMessage(const string& event, 
+                                        const string& username, 
+                                        const string& details) {
+    stringstream ss;
+    ss << "["  << getCurrentTimestamp() << "] "
+       << "[" << getSeverityLevel(event) << "] "
+       << "[" << event << "] "
+       << "User: " << username << " "
+       << (details.empty() ? "" : "Details: " + details);
+    return ss.str();
+}
+
+string SecurityFunctions::getSeverityLevel(const string& event) {
+    if (event.find("failed") != string::npos || 
+        event.find("error") != string::npos ||
+        event.find("breach") != string::npos ||
+        event.find("intrusion") != string::npos) {
+        return "HIGH";
+    }
+    
+    if (event.find("warning") != string::npos ||
+        event.find("attempt") != string::npos) {
+        return "MEDIUM";
+    }
+    
+    return "LOW";
+}
+
+bool SecurityFunctions::isHighRiskEvent(const string& event) {
+    return getSeverityLevel(event) == "HIGH";
+}
+
+bool SecurityFunctions::logAuditEvent(const string& event, 
+                                    const string& username,
+                                    const string& details,
+                                    const string& ipAddress) {
+    try {
+        // Step 1: Validate input parameters
+        if (event.empty() || username.empty()) {
+            cerr << "Error: Event and username are required for audit logging." << endl;
+            return false;
+        }
+
+        // Step 2: Format the log message
+        string logMessage = formatLogMessage(event, username, details);
+
+        // Step 3: Add IP address if provided
+        if (!ipAddress.empty()) {
+            logMessage += " IP: " + ipAddress;
+        }
+
+        // Step 4: Log to system
+        system.logAuditEvent(event, logMessage);
+
+        // Step 5: Handle high-risk events
+        if (isHighRiskEvent(event)) {
+            system.monitorSuspiciousActivity(username);
+            if (!ipAddress.empty()) {
+                system.detectIntrusion(ipAddress);
+            }
+        }
+
+        // Step 6: Encrypt sensitive log data if necessary
+        if (event.find("password") != string::npos || 
+            event.find("credential") != string::npos) {
+            system.encryptSensitiveData("audit_log", logMessage);
+        }
+
+        return true;
+
+    } catch (const exception& e) {
+        cerr << "Error in audit logging: " << e.what() << endl;
+        try {
+            system.logAuditEvent("audit_log_error", 
+                               "Failed to log event: " + event + 
+                               " for user: " + username);
+        } catch (...) {
+            cerr << "Critical: Failed to log audit error" << endl;
+        }
+        return false;
+    }
+}
+
+// Additional methods that need to be implemented...
+void SecurityFunctions::logRoleChange(const string& username, const string& oldRole, const string& newRole) {
+    string logMessage = "Role change: User '" + username + "' from '" + 
+                       oldRole + "' to '" + newRole + "'";
+    logAuditEvent("role_change", username, logMessage);
+}
+
+bool SecurityFunctions::checkLoginAttempts(const string& username) {
+    system.monitorSuspiciousActivity(username);
+    return true;
+}
+
+void SecurityFunctions::handleSecurityBreach(const string& username, const string& ipAddress) {
+    logSecurityEvent("security_breach", username, "Potential security breach detected");
+    system.detectIntrusion(ipAddress);
+}
+
+string SecurityFunctions::getCurrentRole(const string& username) {
+    // This would typically query the database through PropertyManagementSystem
+    return "User"; // Replace with actual implementation
+}
+
+bool SecurityFunctions::hasRole(const string& username, const string& role) {
+    return getCurrentRole(username) == role;
+}
