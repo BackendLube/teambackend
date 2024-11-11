@@ -163,7 +163,6 @@ string SecurityFunctions::getMimeType(const string& filename) {
 bool SecurityFunctions::scanForMalware(const string& filePath) {
     try {
         // Implement actual malware scanning here
-        // This is a placeholder implementation
         logAuditEvent("malware_scan", "", "Scanning file: " + filePath);
         return true;  // File is safe
     } catch (const exception& e) {
@@ -175,7 +174,6 @@ bool SecurityFunctions::scanForMalware(const string& filePath) {
 string SecurityFunctions::calculateFileChecksum(const string& filePath) {
     try {
         // Implement actual checksum calculation here
-        // This is a placeholder implementation
         return "checksum_placeholder";
     } catch (const exception& e) {
         throw runtime_error("Failed to calculate checksum: " + string(e.what()));
@@ -185,7 +183,6 @@ string SecurityFunctions::calculateFileChecksum(const string& filePath) {
 bool SecurityFunctions::validateFileContent(const string& filePath, const string& expectedMimeType) {
     try {
         // Implement actual file content validation here
-        // This is a placeholder implementation
         return true;
     } catch (const exception& e) {
         logSecurityEvent("content_validation_error", "", e.what());
@@ -200,7 +197,7 @@ void SecurityFunctions::logFileActivity(const string& filename,
     logAuditEvent("file_activity", username, details);
 }
 
-// Public file validation methods
+// file validation methods
 SecurityFunctions::FileValidationResult 
 SecurityFunctions::validateFileUpload(const string& filePath,
                                     const string& username,
@@ -209,7 +206,7 @@ SecurityFunctions::validateFileUpload(const string& filePath,
     result.isValid = true;
     
     try {
-        // Step 1: Basic file checks
+        // Basic file checks
         fs::path path(filePath);
         string filename = path.filename().string();
 
@@ -220,20 +217,20 @@ SecurityFunctions::validateFileUpload(const string& filePath,
             return result;
         }
 
-        // Step 2: File size check
+        // File size check
         size_t fileSize = fs::file_size(filePath);
         if (fileSize > MAX_FILE_SIZE) {
             result.errors.push_back("File exceeds maximum size limit");
             result.isValid = false;
         }
 
-        // Step 3: File extension check
+        // File extension check
         if (!isFileExtensionAllowed(filename)) {
             result.errors.push_back("File type not allowed");
             result.isValid = false;
         }
 
-        // Step 4: Custom allowed types check
+        // Custom allowed types check
         if (!allowedTypes.empty()) {
             string ext = getFileExtension(filename);
             if (allowedTypes.find(ext) == allowedTypes.end()) {
@@ -242,20 +239,20 @@ SecurityFunctions::validateFileUpload(const string& filePath,
             }
         }
 
-        // Step 5: MIME type validation
+        // MIME type validation
         string expectedMimeType = getMimeType(filename);
         if (!validateFileContent(filePath, expectedMimeType)) {
             result.errors.push_back("File content does not match extension");
             result.isValid = false;
         }
 
-        // Step 6: Malware scan
+        // Malware scan
         if (!scanForMalware(filePath)) {
             result.errors.push_back("File failed security scan");
             result.isValid = false;
         }
 
-        // Step 7: Create metadata
+        // Create metadata
         if (result.isValid) {
             string checksum = calculateFileChecksum(filePath);
             result.metadata = {
@@ -265,8 +262,8 @@ SecurityFunctions::validateFileUpload(const string& filePath,
                 username,
                 chrono::system_clock::now(),
                 checksum,
-                true,  // isScanned
-                true   // isSafe
+                true,  
+                true   
             };
 
             // Register the file
@@ -296,16 +293,16 @@ bool SecurityFunctions::processFileUpload(const string& filePath,
                                         const string& username,
                                         const string& destinationPath) {
     try {
-        // Step 1: Validate file
+        // Validate file
         auto validationResult = validateFileUpload(filePath, username);
         if (!validationResult.isValid) {
             return false;
         }
 
-        // Step 2: Create destination directory if it doesn't exist
+        // Create destination directory if it doesn't exist
         fs::create_directories(destinationPath);
 
-        // Step 3: Generate unique filename to prevent overwrites
+        // Generate unique filename to prevent overwrites
         fs::path sourcePath(filePath);
         string filename = sourcePath.filename().string();
         string uniqueFilename = filename;
@@ -317,13 +314,13 @@ bool SecurityFunctions::processFileUpload(const string& filePath,
             uniqueFilename = baseName + "_" + to_string(counter++) + extension;
         }
 
-        // Step 4: Copy file to destination
+        // Copy file to destination
         fs::copy(filePath, destinationPath + "/" + uniqueFilename);
 
-        // Step 5: Update file registry
+        // Update file registry
         fileRegistry[uniqueFilename] = validationResult.metadata;
 
-        // Step 6: Log successful upload
+        // Log successful upload
         logFileActivity(uniqueFilename, "uploaded", username);
 
         return true;
