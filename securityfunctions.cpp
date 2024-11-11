@@ -747,3 +747,277 @@ bool SecurityFunctions::deleteBackup(const string& username, const string& backu
         return false;
     }
 }
+
+
+// Private helper methods for whitelist
+bool SecurityFunctions::validateIPFormat(const string& ipAddress) {
+    // Basic IPv4 format validation using regex
+    regex ipv4Pattern("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
+    if (!regex_match(ipAddress, ipv4Pattern)) {
+        return false;
+    }
+
+    // Validate each octet
+    stringstream ss(ipAddress);
+    string octet;
+    while (getline(ss, octet, '.')) {
+        int value = stoi(octet);
+        if (value < 0 || value > 255) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SecurityFunctions::isIPExpired(const string& ipAddress) {
+    auto it = whitelistExpiry.find(ipAddress);
+    if (it == whitelistExpiry.end()) {
+        return true;
+    }
+    return chrono::system_clock::now() > it->second;
+}
+
+void SecurityFunctions::cleanupExpiredWhitelists() {
+    auto now = chrono::system_clock::now();
+    vector<string> expiredIPs;
+
+    for (const auto& entry : whitelistExpiry) {
+        if (now > entry.second) {
+            expiredIPs.push_back(entry.first);
+        }
+    }
+
+    for (const auto& ip : expiredIPs) {
+        whitelistedIPs.erase(ip);
+        whitelistReasons.erase(ip);
+        whitelistApprovers.erase(ip);
+        whitelistExpiry.erase(ip);
+        logAuditEvent("whitelist_expired", "", "IP removed: " + ip);
+    }
+}
+
+void SecurityFunctions::logWhitelistChange(const string& ipAddress, 
+                                         const string& action, 
+                                         const string& username) {
+    string details = "IP: " + ipAddress + ", Action: " + action;
+    logAuditEvent("whitelist_change", username, details);
+}
+
+// Public whitelist methods
+bool SecurityFunctions::whitelistIP(const string& ipAddress,
+                                  const string& username,
+                                  const string& reason,
+                                  int expiryDays) {
+    try {
+        // Step 1: Validate permissions
+        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
+            logSecurityEvent("unauthorized_whitelist_attempt", username);
+            return false;
+        }
+
+        // Step 2: Validate IP format
+        if (!validateIPFormat(ipAddress)) {
+            logSecurityEvent("invalid_ip_format", username, "IP: " + ipAddress);
+            return false;
+        }
+
+        // Step 3: Check if IP is blacklisted
+        if (isIPBlacklisted(ipAddress)) {
+            logSecurityEvent("whitelist_blocked", username, 
+                           "Attempted to whitelist blacklisted IP: " + ipAddress);
+            return false;
+        }
+
+        // Step 4: Add to whitelist
+        whitelistedIPs.insert(ipAddress);
+        whitelistReasons[ipAddress] = reason;
+        whitelistApprovers[ipAddress] = username;
+        
+        // Set expiry time
+        auto expiry = chrono::system_clock::now() + 
+                     chrono::hours(24 * expiryDays);
+        whitelistExpiry[ipAddress] = expiry;
+
+        // Step 5: Log the action
+        logWhitelistChange(ipAddress, "added", username);
+        
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("whitelist_error", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::removeFromWhitelist(const string& ipAddress,
+                                          const string& username) {
+    try {
+        // Verify permissions
+        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
+            logSecurityEvent("unauthorized_whitelist_removal", username);
+            return false;
+        }
+
+        // Remove from all whitelist containers
+        whitelistedIPs.erase(ipAddress);
+        whitelistReasons.erase(ipAddress);
+        whitelistApprovers.erase(ipAddress);
+        whitelistExpiry.erase(ipAddress);
+
+        logWhitelistChange(ipAddress, "removed", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("whitelist_removal_error", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::isIPWhitelisted(const string& ipAddress) {
+    cleanupExpiredWhitelists();
+    return whitelistedIPs.find(ipAddress) != whitelistedIPs.end() && 
+           !isIPExpired(ipAddress);
+}
+
+vector<pair<string, string>> SecurityFunctions::getWhitelistedIPs() {
+    cleanupExpiredWhitelists();
+    vector<pair<string, string>> result;
+    for (const auto& ip : whitelistedIPs) {
+        result.emplace_back(ip, whitelistReasons[ip]);
+    }
+    return result;
+}
+
+bool SecurityFunctions::updateWhitelistExpiry(const string& ipAddress,
+                                            const string& username,
+                                            int newExpiryDays) {
+    try {
+        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
+            logSecurityEvent("unauthorized_whitelist_update", username);
+            return false;
+        }
+
+        if (whitelistedIPs.find(ipAddress) == whitelistedIPs.end()) {
+            return false;
+        }
+
+        auto newExpiry = chrono::system_clock::now() + 
+                        chrono::hours(24 * newExpiryDays);
+        whitelistExpiry[ipAddress] = newExpiry;
+
+        logWhitelistChange(ipAddress, "expiry_updated", username);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("whitelist_update_error", username, e.what());
+        return false;
+    }
+}
+
+bool SecurityFunctions::bulkWhitelistIPs(const vector<string>& ipAddresses,
+                                       const string& username,
+                                       const string& reason) {
+    try {
+        if (!hasRole(username, "Admin")) {
+            logSecurityEvent("unauthorized_bulk_whitelist", username);
+            return false;
+        }
+
+        bool allSuccess = true;
+        for (const auto& ip : ipAddresses) {
+            if (!whitelistIP(ip, username, reason)) {
+                allSuccess = false;
+            }
+        }
+
+        if (allSuccess) {
+            logAuditEvent("bulk_whitelist_complete", username, 
+                         "Added " + to_string(ipAddresses.size()) + " IPs");
+        }
+
+        return allSuccess;
+
+    } catch (const exception& e) {
+        logSecurityEvent("bulk_whitelist_error", username, e.what());
+        return false;
+    }
+}
+
+void SecurityFunctions::exportWhitelist(const string& filePath) {
+    try {
+        ofstream file(filePath);
+        for (const auto& ip : whitelistedIPs) {
+            file << ip << ","
+                 << whitelistReasons[ip] << ","
+                 << whitelistApprovers[ip] << ","
+                 << chrono::system_clock::to_time_t(whitelistExpiry[ip])
+                 << endl;
+        }
+        logAuditEvent("whitelist_exported", "", "Path: " + filePath);
+    } catch (const exception& e) {
+        logSecurityEvent("whitelist_export_error", "", e.what());
+    }
+}
+
+bool SecurityFunctions::importWhitelist(const string& filePath, 
+                                      const string& username) {
+    try {
+        if (!hasRole(username, "Admin")) {
+            logSecurityEvent("unauthorized_whitelist_import", username);
+            return false;
+        }
+
+        ifstream file(filePath);
+        string line;
+        while (getline(file, line)) {
+            stringstream ss(line);
+            string ip, reason, approver, expiry_str;
+            
+            getline(ss, ip, ',');
+            getline(ss, reason, ',');
+            getline(ss, approver, ',');
+            getline(ss, expiry_str, ',');
+
+            time_t expiry_time = stoll(expiry_str);
+            auto expiry = chrono::system_clock::from_time_t(expiry_time);
+            
+            whitelistedIPs.insert(ip);
+            whitelistReasons[ip] = reason;
+            whitelistApprovers[ip] = approver;
+            whitelistExpiry[ip] = expiry;
+        }
+
+        logAuditEvent("whitelist_imported", username, "Path: " + filePath);
+        return true;
+
+    } catch (const exception& e) {
+        logSecurityEvent("whitelist_import_error", username, e.what());
+        return false;
+    }
+}
+
+// Update the existing detectIntrusion method to check whitelist first
+bool SecurityFunctions::detectIntrusion(const string& ipAddress, 
+                                      const string& username,
+                                      const string& actionType) {
+    try {
+        // First check if IP is whitelisted
+        if (isIPWhitelisted(ipAddress)) {
+            logAuditEvent("whitelist_access", username, 
+                         "Whitelisted IP: " + ipAddress);
+            return false;  // Not an intrusion if whitelisted
+        }
+
+        // Continue with existing intrusion detection logic...
+        if (isIPBlacklisted(ipAddress)) {
+            logSecurityEvent("blocked_blacklisted_ip", username,
+                           "Blocked attempt from blacklisted IP: " + ipAddress);
+            return true;
+        }
+        // ... rest of the existing detectIntrusion implementation ...
+
+    } catch (const exception& e) {
+        logSecurityEvent("intrusion_detection_error", username, e.what());
+        return false;
+    }
+}
