@@ -749,9 +749,9 @@ bool SecurityFunctions::deleteBackup(const string& username, const string& backu
 }
 
 
-// Private helper methods for whitelist
+// methods for whitelist
 bool SecurityFunctions::validateIPFormat(const string& ipAddress) {
-    // Basic IPv4 format validation using regex
+    // format for validation using regex
     regex ipv4Pattern("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
     if (!regex_match(ipAddress, ipv4Pattern)) {
         return false;
@@ -809,26 +809,25 @@ bool SecurityFunctions::whitelistIP(const string& ipAddress,
                                   const string& reason,
                                   int expiryDays) {
     try {
-        // Step 1: Validate permissions
         if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
             logSecurityEvent("unauthorized_whitelist_attempt", username);
             return false;
         }
 
-        // Step 2: Validate IP format
+        // Validate IP format
         if (!validateIPFormat(ipAddress)) {
             logSecurityEvent("invalid_ip_format", username, "IP: " + ipAddress);
             return false;
         }
 
-        // Step 3: Check if IP is blacklisted
+        // Check if IP is blacklisted
         if (isIPBlacklisted(ipAddress)) {
             logSecurityEvent("whitelist_blocked", username, 
                            "Attempted to whitelist blacklisted IP: " + ipAddress);
             return false;
         }
 
-        // Step 4: Add to whitelist
+        // Add to whitelist
         whitelistedIPs.insert(ipAddress);
         whitelistReasons[ipAddress] = reason;
         whitelistApprovers[ipAddress] = username;
@@ -838,7 +837,7 @@ bool SecurityFunctions::whitelistIP(const string& ipAddress,
                      chrono::hours(24 * expiryDays);
         whitelistExpiry[ipAddress] = expiry;
 
-        // Step 5: Log the action
+        // Log the action
         logWhitelistChange(ipAddress, "added", username);
         
         return true;
