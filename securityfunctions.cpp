@@ -257,24 +257,24 @@ bool SecurityFunctions::logAuditEvent(const string& event,
                                     const string& details,
                                     const string& ipAddress) {
     try {
-        // Step 1: Validate input parameters
+        // Validate input parameters
         if (event.empty() || username.empty()) {
             cerr << "Error: Event and username are required for audit logging." << endl;
             return false;
         }
 
-        // Step 2: Format the log message
+        // Format the log message
         string logMessage = formatLogMessage(event, username, details);
 
-        // Step 3: Add IP address if provided
+        // Add IP address if provided
         if (!ipAddress.empty()) {
             logMessage += " IP: " + ipAddress;
         }
 
-        // Step 4: Log to system
+        // Log to system
         system.logAuditEvent(event, logMessage);
 
-        // Step 5: Handle high-risk events
+        // Handle high-risk events
         if (isHighRiskEvent(event)) {
             system.monitorSuspiciousActivity(username);
             if (!ipAddress.empty()) {
@@ -282,7 +282,7 @@ bool SecurityFunctions::logAuditEvent(const string& event,
             }
         }
 
-        // Step 6: Encrypt sensitive log data if necessary
+        // Encrypt sensitive log data if necessary
         if (event.find("password") != string::npos || 
             event.find("credential") != string::npos) {
             system.encryptSensitiveData("audit_log", logMessage);
@@ -303,7 +303,6 @@ bool SecurityFunctions::logAuditEvent(const string& event,
     }
 }
 
-// Additional methods that need to be implemented...
 void SecurityFunctions::logRoleChange(const string& username, const string& oldRole, const string& newRole) {
     string logMessage = "Role change: User '" + username + "' from '" + 
                        oldRole + "' to '" + newRole + "'";
@@ -322,7 +321,6 @@ void SecurityFunctions::handleSecurityBreach(const string& username, const strin
 }
 
 string SecurityFunctions::getCurrentRole(const string& username) {
-    // This would typically query the database through PropertyManagementSystem
     return "User"; // Replace with actual implementation
 }
 
@@ -330,7 +328,7 @@ bool SecurityFunctions::hasRole(const string& username, const string& role) {
     return getCurrentRole(username) == role;
 }
 
-// Private helper methods for intrusion detection
+// intrusion detection
 void SecurityFunctions::cleanupOldAttempts(const string& ipAddress) {
     if (loginAttempts.find(ipAddress) == loginAttempts.end()) {
         return;
@@ -372,30 +370,27 @@ void SecurityFunctions::updateLoginAttempts(const string& ipAddress) {
 }
 
 string SecurityFunctions::analyzeIPPattern(const string& ipAddress) {
-    // Implement pattern analysis logic here
-    // For example, check if IP is from known malicious ranges
-    // or if it follows suspicious patterns
     return "normal"; // Replace with actual pattern analysis
 }
 
 bool SecurityFunctions::isKnownMaliciousPattern(const string& pattern) {
-    // Check against known malicious patterns
+    // This will check for known malicious patterns
     return false; // Replace with actual pattern checking
 }
 
-// Public intrusion detection methods
+// intrusion detection methods
 bool SecurityFunctions::detectIntrusion(const string& ipAddress, 
                                      const string& username,
                                      const string& actionType) {
     try {
-        // Step 1: Check if IP is already blacklisted
+        // Check if IP is already blacklisted
         if (isIPBlacklisted(ipAddress)) {
             logSecurityEvent("blocked_blacklisted_ip", username,
                            "Blocked attempt from blacklisted IP: " + ipAddress);
             return true;
         }
 
-        // Step 2: Update and check login attempts
+        // Update and check login attempts
         updateLoginAttempts(ipAddress);
         auto& attempts = loginAttempts[ipAddress];
         
@@ -406,7 +401,7 @@ bool SecurityFunctions::detectIntrusion(const string& ipAddress,
             return true;
         }
 
-        // Step 3: Analyze IP pattern
+        // Analyze IP pattern
         string pattern = analyzeIPPattern(ipAddress);
         if (isKnownMaliciousPattern(pattern)) {
             blacklistIP(ipAddress, "Matched malicious pattern: " + pattern);
@@ -415,7 +410,7 @@ bool SecurityFunctions::detectIntrusion(const string& ipAddress,
             return true;
         }
 
-        // Step 4: Check for suspicious activity patterns
+        // Check for suspicious activity patterns
         if (isIPSuspicious(ipAddress)) {
             logSecurityEvent("suspicious_activity", username,
                            "Suspicious activity detected from IP: " + ipAddress);
@@ -423,7 +418,7 @@ bool SecurityFunctions::detectIntrusion(const string& ipAddress,
             return true;
         }
 
-        // Step 5: Log the activity
+        // Log the activity
         if (!actionType.empty()) {
             logAuditEvent("security_check", username,
                          "Action type: " + actionType, ipAddress);
@@ -516,7 +511,7 @@ void SecurityFunctions::reportSuspiciousActivity(const string& ipAddress,
     }
 }
 
-// Private helper methods for backup
+// Methods for backup
 string SecurityFunctions::generateBackupId() {
     auto now = chrono::system_clock::now();
     auto timestamp = chrono::system_clock::to_time_t(now);
@@ -533,7 +528,6 @@ bool SecurityFunctions::validateBackupIntegrity(const string& backupPath, const 
 
 void SecurityFunctions::encryptBackup(const string& backupPath, const string& encryptionKey) {
     try {
-        // Implementation would use encryption library
         system.encryptSensitiveData("backup", backupPath);
         logAuditEvent("backup_encrypted", "", "Backup encrypted: " + backupPath);
     } catch (const exception& e) {
@@ -543,7 +537,6 @@ void SecurityFunctions::encryptBackup(const string& backupPath, const string& en
 
 bool SecurityFunctions::compressBackupData(const string& sourcePath, const string& destPath) {
     try {
-        // Implementation would use compression library
         logAuditEvent("backup_compressed", "", "Backup compressed: " + sourcePath);
         return true;
     } catch (const exception& e) {
@@ -580,7 +573,7 @@ void SecurityFunctions::cleanupOldBackups() {
 
 string SecurityFunctions::calculateChecksum(const string& filePath) {
     try {
-        // Implementation would calculate file checksum
+        // Calculate file checksum
         return "checksum_placeholder";
     } catch (const exception& e) {
         throw runtime_error("Checksum calculation failed: " + string(e.what()));
@@ -597,43 +590,43 @@ bool SecurityFunctions::verifyBackupPermissions(const string& username) {
     }
 }
 
-// Public backup methods
+// backup methods
 bool SecurityFunctions::performSecureBackup(const string& username, 
                                           const string& backupType,
                                           const string& customPath) {
     try {
-        // Step 1: Verify permissions
+        // Verify permissions
         if (!verifyBackupPermissions(username)) {
             logSecurityEvent("unauthorized_backup_attempt", username);
             return false;
         }
 
-        // Step 2: Generate backup ID and paths
+        // Generate backup ID and paths
         string backupId = generateBackupId();
         string backupPath = customPath.empty() ? 
             BACKUP_BASE_PATH + backupId : customPath + backupId;
 
-        // Step 3: Create backup directory
+        // Create backup directory
         fs::create_directories(backupPath);
 
-        // Step 4: Perform the backup based on type
+        // Perform the backup based on type
         if (backupType == "incremental" && !performIncrementalBackup(username)) {
             throw runtime_error("Incremental backup failed");
         }
 
-        // Step 5: Compress the backup
+        // Compress the backup
         if (!compressBackupData(backupPath, backupPath + ".zip")) {
             throw runtime_error("Backup compression failed");
         }
 
-        // Step 6: Calculate checksum
+        // Calculate checksum
         string checksum = calculateChecksum(backupPath + ".zip");
 
-        // Step 7: Encrypt the backup
+        // Encrypt the backup
         string encryptionKey = generateBackupId(); // Use proper key generation in practice
         encryptBackup(backupPath + ".zip", encryptionKey);
 
-        // Step 8: Store backup metadata
+        // Store backup metadata
         BackupMetadata metadata {
             backupId,
             chrono::system_clock::now(),
@@ -644,11 +637,11 @@ bool SecurityFunctions::performSecureBackup(const string& username,
         };
         backupHistory[backupId] = metadata;
 
-        // Step 9: Log the backup
+        // Log the backup
         logAuditEvent("backup_completed", username,
                      "Backup ID: " + backupId + ", Type: " + backupType);
 
-        // Step 10: Cleanup old backups
+        // Cleanup old backups
         cleanupOldBackups();
 
         return true;
@@ -663,32 +656,32 @@ bool SecurityFunctions::restoreFromBackup(const string& username,
                                         const string& backupId,
                                         const string& targetPath) {
     try {
-        // Step 1: Verify permissions
+        Verify permissions
         if (!verifyBackupPermissions(username)) {
             logSecurityEvent("unauthorized_restore_attempt", username);
             return false;
         }
 
-        // Step 2: Verify backup exists
+        // Verify backup exists
         if (backupHistory.find(backupId) == backupHistory.end()) {
             throw runtime_error("Backup not found: " + backupId);
         }
 
-        // Step 3: Verify backup integrity
+        // Verify backup integrity
         string backupPath = BACKUP_BASE_PATH + backupId + ".zip";
         if (!validateBackupIntegrity(backupPath, "stored_checksum")) {
             throw runtime_error("Backup integrity check failed");
         }
 
-        // Step 4: Decrypt the backup
+        // Decrypt the backup
         const auto& metadata = backupHistory[backupId];
         system.encryptSensitiveData("restore", backupPath); // Decrypt operation
 
-        // Step 5: Perform the restore
+        // Perform the restore
         fs::create_directories(targetPath);
         // Implementation would restore files here
 
-        // Step 6: Log the restore
+        // Log the restore
         logAuditEvent("backup_restored", username,
                      "Restored backup ID: " + backupId);
 
@@ -751,279 +744,6 @@ bool SecurityFunctions::deleteBackup(const string& username, const string& backu
 
     } catch (const exception& e) {
         logSecurityEvent("backup_deletion_failed", username, e.what());
-        return false;
-    }
-}
-
-// Private helper methods for whitelist
-bool SecurityFunctions::validateIPFormat(const string& ipAddress) {
-    // Basic IPv4 format validation using regex
-    regex ipv4Pattern("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
-    if (!regex_match(ipAddress, ipv4Pattern)) {
-        return false;
-    }
-
-    // Validate each octet
-    stringstream ss(ipAddress);
-    string octet;
-    while (getline(ss, octet, '.')) {
-        int value = stoi(octet);
-        if (value < 0 || value > 255) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool SecurityFunctions::isIPExpired(const string& ipAddress) {
-    auto it = whitelistExpiry.find(ipAddress);
-    if (it == whitelistExpiry.end()) {
-        return true;
-    }
-    return chrono::system_clock::now() > it->second;
-}
-
-void SecurityFunctions::cleanupExpiredWhitelists() {
-    auto now = chrono::system_clock::now();
-    vector<string> expiredIPs;
-
-    for (const auto& entry : whitelistExpiry) {
-        if (now > entry.second) {
-            expiredIPs.push_back(entry.first);
-        }
-    }
-
-    for (const auto& ip : expiredIPs) {
-        whitelistedIPs.erase(ip);
-        whitelistReasons.erase(ip);
-        whitelistApprovers.erase(ip);
-        whitelistExpiry.erase(ip);
-        logAuditEvent("whitelist_expired", "", "IP removed: " + ip);
-    }
-}
-
-void SecurityFunctions::logWhitelistChange(const string& ipAddress, 
-                                         const string& action, 
-                                         const string& username) {
-    string details = "IP: " + ipAddress + ", Action: " + action;
-    logAuditEvent("whitelist_change", username, details);
-}
-
-// Public whitelist methods
-bool SecurityFunctions::whitelistIP(const string& ipAddress,
-                                  const string& username,
-                                  const string& reason,
-                                  int expiryDays) {
-    try {
-        // Step 1: Validate permissions
-        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
-            logSecurityEvent("unauthorized_whitelist_attempt", username);
-            return false;
-        }
-
-        // Step 2: Validate IP format
-        if (!validateIPFormat(ipAddress)) {
-            logSecurityEvent("invalid_ip_format", username, "IP: " + ipAddress);
-            return false;
-        }
-
-        // Step 3: Check if IP is blacklisted
-        if (isIPBlacklisted(ipAddress)) {
-            logSecurityEvent("whitelist_blocked", username, 
-                           "Attempted to whitelist blacklisted IP: " + ipAddress);
-            return false;
-        }
-
-        // Step 4: Add to whitelist
-        whitelistedIPs.insert(ipAddress);
-        whitelistReasons[ipAddress] = reason;
-        whitelistApprovers[ipAddress] = username;
-        
-        // Set expiry time
-        auto expiry = chrono::system_clock::now() + 
-                     chrono::hours(24 * expiryDays);
-        whitelistExpiry[ipAddress] = expiry;
-
-        // Step 5: Log the action
-        logWhitelistChange(ipAddress, "added", username);
-        
-        return true;
-
-    } catch (const exception& e) {
-        logSecurityEvent("whitelist_error", username, e.what());
-        return false;
-    }
-}
-
-bool SecurityFunctions::removeFromWhitelist(const string& ipAddress,
-                                          const string& username) {
-    try {
-        // Verify permissions
-        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
-            logSecurityEvent("unauthorized_whitelist_removal", username);
-            return false;
-        }
-
-        // Remove from all whitelist containers
-        whitelistedIPs.erase(ipAddress);
-        whitelistReasons.erase(ipAddress);
-        whitelistApprovers.erase(ipAddress);
-        whitelistExpiry.erase(ipAddress);
-
-        logWhitelistChange(ipAddress, "removed", username);
-        return true;
-
-    } catch (const exception& e) {
-        logSecurityEvent("whitelist_removal_error", username, e.what());
-        return false;
-    }
-}
-
-bool SecurityFunctions::isIPWhitelisted(const string& ipAddress) {
-    cleanupExpiredWhitelists();
-    return whitelistedIPs.find(ipAddress) != whitelistedIPs.end() && 
-           !isIPExpired(ipAddress);
-}
-
-vector<pair<string, string>> SecurityFunctions::getWhitelistedIPs() {
-    cleanupExpiredWhitelists();
-    vector<pair<string, string>> result;
-    for (const auto& ip : whitelistedIPs) {
-        result.emplace_back(ip, whitelistReasons[ip]);
-    }
-    return result;
-}
-
-bool SecurityFunctions::updateWhitelistExpiry(const string& ipAddress,
-                                            const string& username,
-                                            int newExpiryDays) {
-    try {
-        if (!hasRole(username, "Admin") && !hasRole(username, "IT")) {
-            logSecurityEvent("unauthorized_whitelist_update", username);
-            return false;
-        }
-
-        if (whitelistedIPs.find(ipAddress) == whitelistedIPs.end()) {
-            return false;
-        }
-
-        auto newExpiry = chrono::system_clock::now() + 
-                        chrono::hours(24 * newExpiryDays);
-        whitelistExpiry[ipAddress] = newExpiry;
-
-        logWhitelistChange(ipAddress, "expiry_updated", username);
-        return true;
-
-    } catch (const exception& e) {
-        logSecurityEvent("whitelist_update_error", username, e.what());
-        return false;
-    }
-}
-
-bool SecurityFunctions::bulkWhitelistIPs(const vector<string>& ipAddresses,
-                                       const string& username,
-                                       const string& reason) {
-    try {
-        if (!hasRole(username, "Admin")) {
-            logSecurityEvent("unauthorized_bulk_whitelist", username);
-            return false;
-        }
-
-        bool allSuccess = true;
-        for (const auto& ip : ipAddresses) {
-            if (!whitelistIP(ip, username, reason)) {
-                allSuccess = false;
-            }
-        }
-
-        if (allSuccess) {
-            logAuditEvent("bulk_whitelist_complete", username, 
-                         "Added " + to_string(ipAddresses.size()) + " IPs");
-        }
-
-        return allSuccess;
-
-    } catch (const exception& e) {
-        logSecurityEvent("bulk_whitelist_error", username, e.what());
-        return false;
-    }
-}
-
-void SecurityFunctions::exportWhitelist(const string& filePath) {
-    try {
-        ofstream file(filePath);
-        for (const auto& ip : whitelistedIPs) {
-            file << ip << ","
-                 << whitelistReasons[ip] << ","
-                 << whitelistApprovers[ip] << ","
-                 << chrono::system_clock::to_time_t(whitelistExpiry[ip])
-                 << endl;
-        }
-        logAuditEvent("whitelist_exported", "", "Path: " + filePath);
-    } catch (const exception& e) {
-        logSecurityEvent("whitelist_export_error", "", e.what());
-    }
-}
-
-bool SecurityFunctions::importWhitelist(const string& filePath, 
-                                      const string& username) {
-    try {
-        if (!hasRole(username, "Admin")) {
-            logSecurityEvent("unauthorized_whitelist_import", username);
-            return false;
-        }
-
-        ifstream file(filePath);
-        string line;
-        while (getline(file, line)) {
-            stringstream ss(line);
-            string ip, reason, approver, expiry_str;
-            
-            getline(ss, ip, ',');
-            getline(ss, reason, ',');
-            getline(ss, approver, ',');
-            getline(ss, expiry_str, ',');
-
-            time_t expiry_time = stoll(expiry_str);
-            auto expiry = chrono::system_clock::from_time_t(expiry_time);
-            
-            whitelistedIPs.insert(ip);
-            whitelistReasons[ip] = reason;
-            whitelistApprovers[ip] = approver;
-            whitelistExpiry[ip] = expiry;
-        }
-
-        logAuditEvent("whitelist_imported", username, "Path: " + filePath);
-        return true;
-
-    } catch (const exception& e) {
-        logSecurityEvent("whitelist_import_error", username, e.what());
-        return false;
-    }
-}
-
-// Update the existing detectIntrusion method to check whitelist first
-bool SecurityFunctions::detectIntrusion(const string& ipAddress, 
-                                      const string& username,
-                                      const string& actionType) {
-    try {
-        // First check if IP is whitelisted
-        if (isIPWhitelisted(ipAddress)) {
-            logAuditEvent("whitelist_access", username, 
-                         "Whitelisted IP: " + ipAddress);
-            return false;  // Not an intrusion if whitelisted
-        }
-
-        // Continue with existing intrusion detection logic...
-        if (isIPBlacklisted(ipAddress)) {
-            logSecurityEvent("blocked_blacklisted_ip", username,
-                           "Blocked attempt from blacklisted IP: " + ipAddress);
-            return true;
-        }
-        // ... rest of the existing detectIntrusion implementation ...
-
-    } catch (const exception& e) {
-        logSecurityEvent("intrusion_detection_error", username, e.what());
         return false;
     }
 }
