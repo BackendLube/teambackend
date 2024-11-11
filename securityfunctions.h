@@ -84,6 +84,20 @@ private:
     string calculateChecksum(const string& filePath);
     bool verifyBackupPermissions(const string& username);
 
+    // whitelist-related members
+    set<string> whitelistedIPs;
+    map<string, string> whitelistReasons;    // IP -> Reason
+    map<string, string> whitelistApprovers;  // IP -> Approver
+    map<string, chrono::system_clock::time_point> whitelistExpiry; // IP -> Expiry time
+
+    // Private helper methods for whitelist
+    bool validateIPFormat(const string& ipAddress);
+    bool isIPExpired(const string& ipAddress);
+    void cleanupExpiredWhitelists();
+    void logWhitelistChange(const string& ipAddress, 
+                           const string& action, 
+                           const string& username);
+
 public:
     // Constructor
     SecurityFunctions(PropertyManagementSystem& sys) : system(sys) {}
@@ -150,6 +164,28 @@ public:
     string getLatestBackupStatus(const string& username);
     size_t getBackupSize(const string& backupId);
     bool exportBackupMetadata(const string& username, const string& outputPath);
+
+    // whitelist management functions
+    bool whitelistIP(const string& ipAddress,
+                    const string& username,
+                    const string& reason,
+                    int expiryDays = 30);
+    bool removeFromWhitelist(const string& ipAddress,
+                           const string& username);
+    bool isIPWhitelisted(const string& ipAddress);
+    vector<pair<string, string>> getWhitelistedIPs(); // Returns IP-Reason pairs
+    bool updateWhitelistExpiry(const string& ipAddress,
+                             const string& username,
+                             int newExpiryDays);
+    bool bulkWhitelistIPs(const vector<string>& ipAddresses,
+                         const string& username,
+                         const string& reason);
+    string getWhitelistReason(const string& ipAddress);
+    string getWhitelistApprover(const string& ipAddress);
+    chrono::system_clock::time_point getWhitelistExpiry(const string& ipAddress);
+    vector<string> getExpiringWhitelists(int daysToExpiry = 7);
+    void exportWhitelist(const string& filePath);
+    bool importWhitelist(const string& filePath, const string& username);
 };
 
 #endif 
