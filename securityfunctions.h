@@ -14,8 +14,11 @@
 #include <iomanip>
 #include <map>
 #include <queue>
+#include <filesystem>
+#include <fstream>
 
 using namespace std;
+namespace fs = std::filesystem;
 
 class SecurityFunctions {
 private:
@@ -38,7 +41,21 @@ private:
     const int MAX_LOGIN_ATTEMPTS = 5;                // Maximum allowed login attempts
     const int ATTEMPT_WINDOW_SECONDS = 300;          // Time window for tracking attempts (5 minutes)
     const int BLACKLIST_THRESHOLD = 3;               // Number of violations before permanent blacklist
-    
+
+    struct BackupMetadata {
+        string backupId;
+        chrono::system_clock::time_point timestamp;
+        string type;  
+        string status;
+        size_t size;
+        string encryptionKey;
+    };
+
+    map<string, BackupMetadata> backupHistory;
+    const string BACKUP_BASE_PATH = "/secure/backups/";
+    const int MAX_BACKUP_RETENTION_DAYS = 30;
+    const int INCREMENTAL_BACKUP_INTERVAL = 24; 
+
     // Private helper methods for role management
     bool isValidRole(const string& role);
     bool hasPermissionToGrantRole(const string& granterUsername, const string& targetRole);
@@ -58,6 +75,14 @@ private:
     void updateLoginAttempts(const string& ipAddress);
     string analyzeIPPattern(const string& ipAddress);
     bool isKnownMaliciousPattern(const string& pattern);
+    //Private helper for backup
+    string generateBackupId();
+    bool validateBackupIntegrity(const string& backupPath, const string& checksum);
+    void encryptBackup(const string& backupPath, const string& encryptionKey);
+    bool compressBackupData(const string& sourcePath, const string& destPath);
+    void cleanupOldBackups();
+    string calculateChecksum(const string& filePath);
+    bool verifyBackupPermissions(const string& username);
 
 public:
     // Constructor
@@ -107,6 +132,24 @@ public:
     void reportSuspiciousActivity(const string& ipAddress, 
                                 const string& activityType,
                                 const string& details = "");
+
+// New backup security functions
+    bool performSecureBackup(const string& username, 
+                           const string& backupType = "full",
+                           const string& customPath = "");
+    bool restoreFromBackup(const string& username,
+                          const string& backupId,
+                          const string& targetPath = "");
+    vector<BackupMetadata> getBackupHistory(const string& username);
+    bool verifyBackup(const string& backupId);
+    bool deleteBackup(const string& username, const string& backupId);
+    bool scheduleAutomaticBackup(const string& username,
+                               const string& frequency,
+                               const string& backupType);
+    bool performIncrementalBackup(const string& username);
+    string getLatestBackupStatus(const string& username);
+    size_t getBackupSize(const string& backupId);
+    bool exportBackupMetadata(const string& username, const string& outputPath);
 };
 
 #endif 
