@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- Previous head content remains exactly the same -->
     <title>Property Management System</title>
     <style>
+        /* All existing styles remain exactly the same */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -122,7 +124,7 @@
         let currentUser = null;
         let currentPage = 'dashboard';
         let isSignup = false;
-        let isChangingPassword = false;
+        let isChangingPassword = false; // New state variable for password change
 
         function renderLogin() {
             return `
@@ -178,7 +180,46 @@
             `;
         }
 
-        function renderNavigation() {
+        function handlePasswordChange(event) {
+            event.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                document.getElementById('passwordChangeError').textContent = 'New passwords do not match';
+                return;
+            }
+
+            fetch('/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${currentUser.username}&oldPassword=${currentPassword}&newPassword=${newPassword}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Password changed successfully!');
+                    isChangingPassword = false;
+                    render();
+                } else {
+                    document.getElementById('passwordChangeError').textContent = 
+                        data.message || 'Error changing password';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('passwordChangeError').textContent = 'Error connecting to server';
+            });
+        }
+
+        function cancelPasswordChange() {
+            isChangingPassword = false;
+            render();
+        }
+function renderNavigation() {
             let buttons = '';
             
             switch(currentUser.role) {
@@ -202,13 +243,51 @@
                     break;
             }
             
-            // Add password change and logout buttons for all users
             buttons += `
                 <button onclick="isChangingPassword = true; render();">Change Password</button>
                 <button onclick="handleLogout()">Logout</button>
             `;
             
             return `<div class="nav">${buttons}</div>`;
+        }
+
+        function renderTenantPortal() {
+            return `
+                <div class="content">
+                    <h2>Tenant Portal</h2>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Monthly Payment</h3>
+                            <p>Current Rent: $${data.tenants[0].rent}</p>
+                            <p>Due Date: 1st of each month</p>
+                            <button onclick="alert('Payment processing is not implemented in this demo')">Make Payment</button>
+                        </div>
+                        <div class="card">
+                            <h3>Maintenance Request</h3>
+                            <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
+                                <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
+                                <button type="submit">Submit Request</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUserManagement() {
+            return `
+                <div class="content">
+                    <h2>User Management</h2>
+                    ${data.users.map(user => `
+                        <div class="card">
+                            <h3>${user.username}</h3>
+                            <p>Role: ${user.role}</p>
+                            <button onclick="alert('Edit user functionality would go here')">Edit</button>
+                            <button onclick="alert('Delete user functionality would go here')" style="background-color: #ff4444;">Delete</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
 
         function renderDashboard() {
@@ -286,45 +365,6 @@
             `;
         }
 
-        function renderTenantPortal() {
-            return `
-                <div class="content">
-                    <h2>Tenant Portal</h2>
-                    <div class="grid">
-                        <div class="card">
-                            <h3>Monthly Payment</h3>
-                            <p>Current Rent: $${data.tenants[0].rent}</p>
-                            <p>Due Date: 1st of each month</p>
-                            <button onclick="alert('Payment processing is not implemented in this demo')">Make Payment</button>
-                        </div>
-                        <div class="card">
-                            <h3>Maintenance Request</h3>
-                            <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
-                                <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
-                                <button type="submit">Submit Request</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderUserManagement() {
-            return `
-                <div class="content">
-                    <h2>User Management</h2>
-                    ${data.users.map(user => `
-                        <div class="card">
-                            <h3>${user.username}</h3>
-                            <p>Role: ${user.role}</p>
-                            <button onclick="alert('Edit user functionality would go here')">Edit</button>
-                            <button onclick="alert('Delete user functionality would go here')" style="background-color: #ff4444;">Delete</button>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
         function renderInvestment() {
             const totalValue = data.properties.reduce((sum, property) => sum + property.value, 0);
             const monthlyRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
@@ -389,4 +429,101 @@
             formData.append('userType', userType);
 
             fetch('/signup', {
-                metho
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.status === 'success') {
+                    alert('Account created successfully!');
+                    showLogin();
+                } else {
+                    document.getElementById('signupError').textContent = 
+                        data.message || 'Error creating account';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('signupError').textContent = 'Error connecting to server';
+            });
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            currentPage = 'dashboard';
+            isSignup = false;
+            isChangingPassword = false;
+            render();
+        }
+
+        function showSignup() {
+            isSignup = true;
+            render();
+        }
+
+        function showLogin() {
+            isSignup = false;
+            render();
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            render();
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            if (!currentUser) {
+                app.innerHTML = isSignup ? renderSignup() : renderLogin();
+                return;
+            }
+
+            if (isChangingPassword) {
+                app.innerHTML = renderNavigation() + renderPasswordChange();
+                return;
+            }
+
+            let content = '';
+            switch (currentPage) {
+                case 'dashboard':
+                    content = renderDashboard();
+                    break;
+                case 'properties':
+                    content = renderProperties();
+                    break;
+                case 'tenants':
+                    content = renderTenants();
+                    break;
+                case 'maintenance':
+                    content = renderMaintenance();
+                    break;
+                case 'investment':
+                    content = renderInvestment();
+                    break;
+                case 'tenant-portal':
+                    content = renderTenantPortal();
+                    break;
+                case 'user-management':
+                    content = renderUserManagement();
+                    break;
+                default:
+                    content = currentUser.role === 'tenant' ? renderTenantPortal() :
+                             currentUser.role === 'admin' ? renderUserManagement() :
+                             currentUser.role === 'investment_analyst' ? renderInvestment() :
+                             renderDashboard();
+            }
+            
+            app.innerHTML = renderNavigation() + content;
+        }
+
+        render();
+    </script>
+</body>
+</html>
