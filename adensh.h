@@ -36,6 +36,9 @@ public:
     bool createAccount(const string& username, const string& password, const string& role);
     bool userLogin(const string& username, const string& password);
 
+    // Password management
+    bool changePassword(const string& username, const string& oldPassword, const string& newPassword);
+
     // Maintenance request handling
     void submitMaintenanceRequest(int tenantId, const string& description);
 
@@ -169,6 +172,38 @@ bool PropertyManagementSystem::userLogin(const string& username, const string& p
     return valid;
 }
 
+// Changes the user's password
+bool PropertyManagementSystem::changePassword(const string& username, const string& oldPassword, const string& newPassword) {
+    // Check if old password is correct
+    string query = "SELECT COUNT(*) FROM users WHERE username='" + username + "' AND password='" + oldPassword + "'";
+    if (mysql_query(conn, query.c_str())) {
+        std::cerr << "Password check query failed: " << mysql_error(conn) << std::endl;
+        return false;
+    }
+
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (!result) return false;
+
+    MYSQL_ROW row = mysql_fetch_row(result);
+    if (row && atoi(row[0]) > 0) {
+        // Old password is correct, proceed to update the new password
+        string update_query = "UPDATE users SET password = '" + newPassword + "' WHERE username = '" + username + "'";
+        if (mysql_query(conn, update_query.c_str())) {
+            std::cerr << "Password update failed: " << mysql_error(conn) << std::endl;
+            mysql_free_result(result);
+            return false;
+        }
+
+        mysql_free_result(result);
+        std::cout << "Password successfully updated for user " << username << std::endl;
+        return true;
+    } else {
+        mysql_free_result(result);
+        std::cerr << "Old password is incorrect" << std::endl;
+        return false;
+    }
+}
+
 // Submits a maintenance request
 void PropertyManagementSystem::submitMaintenanceRequest(int tenantId, const string& description) {
     string query = "INSERT INTO maintenance_requests (tenant_id, description) VALUES (" +
@@ -186,4 +221,3 @@ void PropertyManagementSystem::managePropertyDescription(int propertyId, const s
 }
 
 #endif
-
