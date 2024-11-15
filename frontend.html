@@ -367,15 +367,45 @@
 
         /* Other handlers remain the same */
         function handleSignup(event) {
-            event.preventDefault();
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
-            const userType = document.getElementById('userType').value;
-            
-            alert(`Account created successfully as ${userType}!`);
-            showLogin();
-        }
+    event.preventDefault();
+    
+    const username = document.getElementById('newUsername').value;
+    const password = document.getElementById('newPassword').value;
+    const userType = document.getElementById('userType').value;
+    
+    console.log('Sending signup data:', { username, userType }); // Debug log
 
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+    formData.append('userType', userType);
+
+    fetch('/signup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
+    })
+    .then(response => {
+        console.log('Response status:', response.status); // Debug log
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data); // Debug log
+        if (data.status === 'success') {
+            alert('Account created successfully!');
+            showLogin();
+        } else {
+            document.getElementById('signupError').textContent = 
+                data.message || 'Error creating account';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('signupError').textContent = 'Error connecting to server';
+    });
+}
         function handleLogout() {
             currentUser = null;
             currentPage = 'dashboard';
