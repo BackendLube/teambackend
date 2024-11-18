@@ -1,147 +1,311 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <!-- Previous head content remains exactly the same -->
+    <meta charset="UTF-8">
     <title>Property Management System</title>
     <style>
-        /* All existing styles remain exactly the same */
-        body {
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
             padding: 0;
-            background-color: white;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
         }
         
         .nav {
-            background-color: black;
-            padding: 1rem;
+            background: linear-gradient(to right, #2c3e50, #3498db);
+            padding: 3rem;
             color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .nav button {
-            background: none;
+            background: transparent;
             border: none;
             color: white;
-            padding: 0.5rem 1rem;
+            padding: 0.7rem 1.2rem;
             margin-right: 1rem;
             cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+            font-size: 0.95rem;
         }
         
         .nav button:hover {
-            background-color: grey;
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
         }
-        
-        .content {
-            padding: 2rem;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
+
         .login-container {
             max-width: 400px;
-            margin: 100px auto;
-            padding: 2rem;
+            margin: 80px auto;
+            padding: 2.5rem;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .login-container h2 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-size: 1.8rem;
         }
         
         input, select {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.8rem;
             margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
         }
         
         button {
-            background-color: blue;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #3498db, #2980b9);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.8rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         
         button:hover {
-            background-color: blue;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
         }
         
         .error {
-            color: red;
+            color: #e74c3c;
+            background: #ffffff;
+            padding: 0.8rem;
+            border-radius: 6px;
             margin-bottom: 1rem;
+            font-size: 0.9rem;
         }
 
-        .secondary-button {
-            background-color: #666;
-            width: 100%;
+        .content {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
+
+        .dashboard-card {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .dashboard-card h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .content h2 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            min-height: 100px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Custom styling for different sections */
+        .tenant-portal .dashboard-card {
+            border-left: 4px solid #3498db;
+        }
+
+        .user-management .dashboard-card {
+            border-left: 4px solid #2ecc71;
+        }
+
+        .investment .dashboard-card {
+            border-left: 4px solid #f1c40f;
+        }
+/* Add these to your existing style section */
+.message {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+#addPropertyForm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#addPropertyForm input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#addPropertyForm button {
+    margin-top: 10px;
+    background: linear-gradient(to right, #3498db, #2980b9);
+}
+
+#addPropertyForm button:hover {
+    background: linear-gradient(to right, #2980b9, #2471a3);
+}
+        /* Status indicators */
+        .status {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .status.active {
+            background: #e8f5e9;
+            color: #2ecc71;
+        }
+
+        .status.pending {
+            background: #fff8e1;
+            color: #f1c40f;
+        }
+
+        /* Animations */
+        .dashboard-card {
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Special styling for secondary buttons */
+        button.secondary {
+            background: linear-gradient(to right, #95a5a6, #7f8c8d);
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 40px 20px;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+
+            .nav button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
     </style>
 </head>
 <body>
     <div id="app"></div>
 
     <script>
-        /* Existing data remains the same */
-        const data = {
-            properties: [
-                { id: 1, address: "123 Main St", description: "Modern Apartment", value: 1200000, performance: 85.5 },
-                { id: 2, address: "456 Meridian Rd", description: "Commercial Space", value: 2500000, performance: 92.0 },
-                { id: 3, address: "789 Normal Ave", description: "Residential Home", value: 450000, performance: 78.3 }
-            ],
-            tenants: [
-                { id: 1, name: "Evan Lubinsky", property_id: 1, lease_start: "2024-01-01", lease_end: "2024-12-31", rent: 1500 },
-                { id: 2, name: "Aden Llewellyn", property_id: 1, lease_start: "2024-02-01", lease_end: "2024-12-31", rent: 1600 },
-                { id: 3, name: "Jake Dobson", property_id: 2, lease_start: "2024-01-15", lease_end: "2024-12-31", rent: 2500 }
-            ],
-            maintenance: [
-                { id: 1, property_id: 1, description: "Leaking faucet", status: "Open", created_at: "2024-03-15" },
-                { id: 2, property_id: 2, description: "HVAC repair", status: "In Progress", created_at: "2024-03-10" },
-                { id: 3, property_id: 1, description: "Broken window", status: "Resolved", created_at: "2024-03-01" }
-            ],
-            users: [
-                { id: 1, username: "backend", password: "backend123", role: "property_owner" },
-                { id: 2, username: "tenant1", password: "tenant123", role: "tenant" },
-                { id: 3, username: "admin", password: "admin123", role: "admin" },
-                { id: 4, username: "analyst", password: "analyst123", role: "investment_analyst" }
-            ]
-        };
-
-        /* Enhanced state management */
         let currentUser = null;
-        let currentPage = 'dashboard';
-        let isSignup = false;
+        let currentPage = 'login';
 
-        /* Login and Signup components remain the same */
         function renderLogin() {
-    return `
-        <div class="login-container">
-            <h2>Property Management Login</h2>
-            <div id="loginError" class="error"></div> 
-            <form onsubmit="handleLogin(event)">
-                <input type="text" name="username" id="loginUsername" placeholder="Username" required>
-                <input type="password" name="password" id="loginPassword" placeholder="Password" required>
-                <button type="submit">Login</button>
-            </form>
-            <button class="secondary-button" onclick="showSignup()">Sign Up</button>
-        </div>
-    `;
-}
+            return `
+                <div class="login-container">
+                    <h2>Property Management Login</h2>
+                    <div id="loginError" class="error"></div> 
+                    <form onsubmit="handleLogin(event)">
+                        <input type="text" name="username" placeholder="Username" required>
+                        <input type="password" name="password" placeholder="Password" required>
+                        <button type="submit">Login</button>
+                    </form>
+                    <button onclick="showSignup()" style="background-color: #666;">Sign Up</button>
+                </div>
+            `;
+        }
 
         function renderSignup() {
             return `
@@ -149,74 +313,165 @@
                     <h2>Create Account</h2>
                     <div id="signupError" class="error"></div>
                     <form onsubmit="handleSignup(event)">
-                        <input type="text" id="newUsername" placeholder="Username" required>
-                        <input type="password" id="newPassword" placeholder="Password" required>
-                        <select id="userType" required>
+                        <input type="text" name="username" placeholder="Username" required>
+                        <input type="password" name="password" placeholder="Password" required>
+                        <select name="userType" required>
                             <option value="">Select Role</option>
+                            <option value="tenant">Tenant</option>
                             <option value="property_owner">Property Owner</option>
                             <option value="admin">Admin</option>
-                            <option value="tenant">Tenant</option>
                             <option value="investment_analyst">Investment Analyst</option>
                         </select>
                         <button type="submit">Create Account</button>
                     </form>
-                    <button class="secondary-button" onclick="showLogin()">Back to Login</button>
+                    <button onclick="showLogin()" style="background-color: #666;">Back to Login</button>
                 </div>
             `;
         }
+     
 
-        /* Role-based navigation */
+        function handleLogin(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const username = formData.get('username');
+            const password = formData.get('password');
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Login response:', data);
+                if (data.status === 'success') {
+                    currentUser = data.user;
+                    // Set initial page based on role
+                    switch(currentUser.role) {
+                        case 'tenant':
+                            currentPage = 'tenant-portal';
+                            break;
+                        case 'admin':
+                            currentPage = 'user-management';
+                            break;
+                        case 'investment_analyst':
+                            currentPage = 'investment';
+                            break;
+                        case 'property_owner':
+                        default:
+                            currentPage = 'dashboard';
+                            break;
+                    }
+                    render();
+                } else {
+                    document.getElementById('loginError').textContent = data.message || 'Invalid credentials';
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                document.getElementById('loginError').textContent = 'Error connecting to server';
+            });
+        }
+
+        function handleSignup(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(formData.get('username'))}&password=${encodeURIComponent(formData.get('password'))}&userType=${encodeURIComponent(formData.get('userType'))}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Account created successfully!');
+                    showLogin();
+                } else {
+                    document.getElementById('signupError').textContent = data.message || 'Error creating account';
+                }
+            })
+            .catch(error => {
+                console.error('Signup error:', error);
+                document.getElementById('signupError').textContent = 'Error connecting to server';
+            });
+        }
+
         function renderNavigation() {
-            let buttons = '';
-            
+            if (!currentUser) return '';
+
+            let links = '';
             switch(currentUser.role) {
-                case 'property_owner':
-                    buttons = `
-                        <button onclick="changePage('dashboard')">Dashboard</button>
-                        <button onclick="changePage('properties')">Properties</button>
-                        <button onclick="changePage('tenants')">Tenants</button>
-                        <button onclick="changePage('maintenance')">Maintenance</button>
-                        <button onclick="changePage('investment')">Investment Analysis</button>
+                case 'tenant':
+                    links = `
+                        <button onclick="setPage('tenant-portal')">Tenant Portal</button>
                     `;
                     break;
-                case 'tenant':
-                    buttons = `<button onclick="changePage('tenant-portal')">Tenant Portal</button>`;
-                    break;
                 case 'admin':
-                    buttons = `<button onclick="changePage('user-management')">User Management</button>`;
+                    links = `
+                        <button onclick="setPage('user-management')">User Management</button>
+                    `;
                     break;
                 case 'investment_analyst':
-                    buttons = `<button onclick="changePage('investment')">Investment Analysis</button>`;
+                    links = `
+                        <button onclick="setPage('investment')">Investment Analysis</button>
+                    `;
+                    break;
+                case 'property_owner':
+                    links = `
+                        <button onclick="setPage('dashboard')">Dashboard</button>
+                        <button onclick="setPage('properties')">Properties</button>
+                        <button onclick="setPage('tenants')">Tenants</button>
+                        <button onclick="setPage('maintenance')">Maintenance</button>
+                    `;
                     break;
             }
-            
             return `
                 <div class="nav">
-                    ${buttons}
-                    <button onclick="handleLogout()">Logout</button>
+                    ${links}
+                    <button onclick="handleLogout()" style="float: right;">Logout</button>
                 </div>
             `;
         }
 
-        /* New role-specific components */
+        function renderDashboard() {
+            return `
+                <div class="content">
+                    <h2>Dashboard</h2>
+                    <div class="dashboard-card">
+                        <h3>Properties Overview</h3>
+                        <p>Total Properties: 3</p>
+                        <p>Occupancy Rate: 85%</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Financial Summary</h3>
+                        <p>Monthly Revenue: $15,000</p>
+                        <p>Outstanding Payments: $2,500</p>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderTenantPortal() {
             return `
                 <div class="content">
                     <h2>Tenant Portal</h2>
-                    <div class="grid">
-                        <div class="card">
-                            <h3>Monthly Payment</h3>
-                            <p>Current Rent: $${data.tenants[0].rent}</p>
-                            <p>Due Date: 1st of each month</p>
-                            <button onclick="alert('Payment processing is not implemented in this demo')">Make Payment</button>
-                        </div>
-                        <div class="card">
-                            <h3>Maintenance Request</h3>
-                            <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
-                                <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
-                                <button type="submit">Submit Request</button>
-                            </form>
-                        </div>
+                    <div class="dashboard-card">
+                        <h3>Your Rent</h3>
+                        <p>Monthly Rent: $1,500</p>
+                        <p>Next Payment Due: 1st of next month</p>
+                        <button onclick="alert('Payment feature coming soon')">Make Payment</button>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Maintenance Request</h3>
+                        <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
+                            <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
+                            <button type="submit">Submit Request</button>
+                        </form>
                     </div>
                 </div>
             `;
@@ -226,75 +481,243 @@
             return `
                 <div class="content">
                     <h2>User Management</h2>
-                    ${data.users.map(user => `
-                        <div class="card">
-                            <h3>${user.username}</h3>
-                            <p>Role: ${user.role}</p>
-                            <button onclick="alert('Edit user functionality would go here')">Edit</button>
-                            <button onclick="alert('Delete user functionality would go here')" style="background-color: #ff4444;">Delete</button>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        /* All existing render functions remain the same */
-        function renderDashboard() {
-            const totalProperties = data.properties.length;
-            const totalRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
-            
-            return `
-                <div class="content">
-                    <h2>Dashboard</h2>
-                    <div class="grid">
-                        <div class="card">
-                            <h3>Properties</h3>
-                            <p>${totalProperties}</p>
-                        </div>
-                        <div class="card">
-                            <h3>Monthly Income</h3>
-                            <p>$${totalRent.toLocaleString()}</p>
-                        </div>
-                        <div class="card">
-                            <h3>Active Maintenance</h3>
-                            <p>${data.maintenance.filter(m => m.status !== 'Resolved').length}</p>
+                    <div class="dashboard-card">
+                        <h3>Users</h3>
+                        <div id="usersList">
+                            <!-- User list would be populated dynamically -->
+                            <p>John Doe - Tenant</p>
+                            <p>Jane Smith - Property Owner</p>
+                            <p>Admin User - Admin</p>
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        /* All other existing render functions remain exactly the same */
+        function renderInvestment() {
+            return `
+                <div class="content">
+                    <h2>Investment Analysis</h2>
+                    <div class="dashboard-card">
+                        <h3>Portfolio Overview</h3>
+                        <p>Total Investment Value: $2,500,000</p>
+                        <p>Annual ROI: 8.5%</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Market Analysis</h3>
+                        <p>Market Trend: Upward</p>
+                        <p>Growth Potential: High</p>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderProperties() {
-            return `
-                <div class="content">
-                    <h2>Properties</h2>
-                    <div class="grid">
-                        ${data.properties.map(property => `
-                            <div class="card">
-                                <h3>${property.address}</h3>
-                                <p>${property.description}</p>
-                                <p>Value: $${property.value.toLocaleString()}</p>
-                                <p>Performance: ${property.performance}%</p>
-                            </div>
-                        `).join('')}
-                    </div>
+    return `
+        <div class="content">
+            <h2>Properties</h2>
+            <div class="dashboard-card">
+                <h3>Add New Property</h3>
+                <form id="addPropertyForm" onsubmit="handleAddProperty(event)">
+                    <input type="text" name="address" placeholder="Property Address" required>
+                    <input type="date" name="date" required>
+                    <input type="number" name="price" placeholder="Property Price" step="0.01" min="0" required>
+                    <input type="number" name="rent" placeholder="Monthly Rent" step="0.01" min="0" required>
+                    <button type="submit" class="submit-btn">Add Property</button>
+                </form>
+                <div id="propertyMessage" style="display: none;" class="message"></div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Property List</h3>
+                <div id="propertiesList">
+                    <p>123 Main St - Residential</p>
+                    <p>456 Oak Ave - Commercial</p>
+                    <p>789 Pine Rd - Residential</p>
                 </div>
-            `;
+            </div>
+        </div>
+    `;
+}
+
+function handleAddProperty(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const propertyData = {
+        username: currentUser.username,
+        address: formData.get('address'),
+        date: formData.get('date'),
+        price: formData.get('price'),
+        rent: formData.get('rent')
+    };
+
+    fetch('/add-property', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: Object.entries(propertyData)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .join('&')
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messageDiv = document.getElementById('propertyMessage');
+        messageDiv.style.display = 'block';
+        
+        if (data.status === 'success') {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Property added successfully!';
+            form.reset(); // Clear the form
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.message || 'Error adding property';
         }
 
+        // Hide message after 3 seconds
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const messageDiv = document.getElementById('propertyMessage');
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Error connecting to server';
+    });
+}
+// Add this function to fetch properties
+function fetchProperties() {
+    if (!currentUser) return;
+    
+    fetch(`/properties/?username=${encodeURIComponent(currentUser.username)}`)
+        .then(response => response.json())
+        .then(properties => {
+            const propertiesList = document.getElementById('propertiesList');
+            if (propertiesList) {
+                propertiesList.innerHTML = properties.length > 0 
+                    ? properties.map(property => `
+                        <div class="property-item p-4 border-b">
+                            <h4 class="font-medium">${property.address}</h4>
+                            <div class="grid grid-cols-2 gap-4 mt-2 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Added:</span> 
+                                    ${new Date(property.date_added).toLocaleDateString()}
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Price:</span> 
+                                    $${parseFloat(property.price).toLocaleString()}
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Monthly Rent:</span> 
+                                    $${parseFloat(property.monthly_rent).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')
+                    : '<p class="text-gray-500">No properties found</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching properties:', error);
+            const propertiesList = document.getElementById('propertiesList');
+            if (propertiesList) {
+                propertiesList.innerHTML = '<p class="text-red-500">Error loading properties</p>';
+            }
+        });
+}
+
+// Modify the renderProperties function
+function renderProperties() {
+    return `
+        <div class="content">
+            <h2>Properties</h2>
+            <div class="dashboard-card">
+                <h3>Add New Property</h3>
+                <form id="addPropertyForm" onsubmit="handleAddProperty(event)">
+                    <input type="text" name="address" placeholder="Property Address" required>
+                    <input type="date" name="date" required>
+                    <input type="number" name="price" placeholder="Property Price" step="0.01" min="0" required>
+                    <input type="number" name="rent" placeholder="Monthly Rent" step="0.01" min="0" required>
+                    <button type="submit">Add Property</button>
+                </form>
+                <div id="propertyMessage" style="display: none;" class="message"></div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Your Properties</h3>
+                <div id="propertiesList" class="divide-y">
+                    <p class="text-gray-500">Loading properties...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.querySelector('.content').innerHTML = content;
+    fetchProperties(); // Fetch properties after rendering the container
+}
+
+// Modify handleAddProperty to refresh the properties list after successful addition
+function handleAddProperty(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const propertyData = {
+        username: currentUser.username,
+        address: formData.get('address'),
+        date: formData.get('date'),
+        price: formData.get('price'),
+        rent: formData.get('rent')
+    };
+
+    fetch('/add-property', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: Object.entries(propertyData)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .join('&')
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messageDiv = document.getElementById('propertyMessage');
+        messageDiv.style.display = 'block';
+        
+        if (data.status === 'success') {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Property added successfully!';
+            form.reset();
+            fetchProperties(); // Refresh the properties list
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = data.message || 'Error adding property';
+        }
+
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const messageDiv = document.getElementById('propertyMessage');
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Error connecting to server';
+    });
+}
         function renderTenants() {
             return `
                 <div class="content">
                     <h2>Tenants</h2>
-                    ${data.tenants.map(tenant => `
-                        <div class="card">
-                            <h3>${tenant.name}</h3>
-                            <p>Property ID: ${tenant.property_id}</p>
-                            <p>Lease: ${tenant.lease_start} to ${tenant.lease_end}</p>
-                            <p>Rent: $${tenant.rent}/month</p>
+                    <div class="dashboard-card">
+                        <h3>Tenant List</h3>
+                        <div id="tenantsList">
+                            <p>John Doe - Unit 101</p>
+                            <p>Jane Smith - Unit 102</p>
+                            <p>Bob Johnson - Unit 103</p>
                         </div>
-                    `).join('')}
+                    </div>
                 </div>
             `;
         }
@@ -303,189 +726,73 @@
             return `
                 <div class="content">
                     <h2>Maintenance Requests</h2>
-                    ${data.maintenance.map(request => `
-                        <div class="card">
-                            <h3>Property ID: ${request.property_id}</h3>
-                            <p>${request.description}</p>
-                            <p>Status: ${request.status}</p>
-                            <p>Created: ${request.created_at}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        function renderInvestment() {
-            const totalValue = data.properties.reduce((sum, property) => sum + property.value, 0);
-            const monthlyRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
-            const estimatedExpenses = monthlyRent * 0.4;
-            const monthlyProfit = monthlyRent - estimatedExpenses;
-            const annualProfit = monthlyProfit * 12;
-
-            return `
-                <div class="content">
-                    <h2>Investment Analysis</h2>
-                    <div class="grid">
-                        <div class="card">
-                            <h3>Net Worth</h3>
-                            <p>$${totalValue.toLocaleString()}</p>
-                            <p>Total Property Value</p>
-                        </div>
-                        <div class="card">
-                            <h3>Monthly Cash Flow</h3>
-                            <p>Income: $${monthlyRent.toLocaleString()}</p>
-                            <p>Expenses: $${estimatedExpenses.toLocaleString()}</p>
-                            <p>Net: $${monthlyProfit.toLocaleString()}</p>
-                        </div>
-                        <div class="card">
-                            <h3>Annual Profit/Loss</h3>
-                            <p>$${annualProfit.toLocaleString()}</p>
-                            <p>Based on current monthly performance</p>
+                    <div class="dashboard-card">
+                        <h3>Active Requests</h3>
+                        <div id="maintenanceList">
+                            <p>Unit 101 - Leaking faucet</p>
+                            <p>Unit 102 - AC repair needed</p>
+                            <p>Unit 103 - Window replacement</p>
                         </div>
                     </div>
                 </div>
             `;
         }
-
-        /* Modified login handler */
-        function handleLogin(event) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-    const username = formData.get('username');
-    const password = formData.get('password');
-
-    // Debug log
-    console.log('Attempting login for:', username);
-
-    fetch('/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Server response:', data); // Debug log
-
-        if (data.status === 'success') {
-            // Set the user as logged in
-            currentUser = {
-                username: username,
-                // Check local data for role or use default
-                role: data.users?.find(u => u.username === username)?.role || 'property_owner'
-            };
-
-            // Debug log
-            console.log('Login successful, user:', currentUser);
-
-            // Set the appropriate landing page based on role
-            currentPage = currentUser.role === 'tenant' ? 'tenant-portal' : 
-                         currentUser.role === 'admin' ? 'user-management' :
-                         currentUser.role === 'investment_analyst' ? 'investment' : 'dashboard';
-
-            // Force a re-render
-            render();
-        } else {
-            console.log('Login failed:', data.message); // Debug log
-            document.getElementById('loginError').textContent = data.message || 'Invalid credentials';
-        }
-    })
-    .catch(error => {
-        console.error('Login error:', error);
-        document.getElementById('loginError').textContent = 'Error connecting to server';
-    });
+        function renderAddPropertyForm() {
+    return `
+        <div class="dashboard-card">
+            <h3>Add New Property</h3>
+            <form id="addPropertyForm" onsubmit="handleAddProperty(event)">
+                <input type="text" name="address" placeholder="Property Address" required>
+                <input type="date" name="date" required>
+                <input type="number" name="price" placeholder="Property Price" step="0.01" required>
+                <input type="number" name="rent" placeholder="Monthly Rent" step="0.01" required>
+                <button type="submit">Add Property</button>
+            </form>
+        </div>
+    `;
 }
 
-// Add this new helper function for local authentication:
-function localLogin(username, password) {
-    const user = data.users.find(u => u.username === username && u.password === password);
-    if (user) {
-        currentUser = user;
-        currentPage = user.role === 'tenant' ? 'tenant-portal' : 
-                    user.role === 'admin' ? 'user-management' :
-                    user.role === 'investment_analyst' ? 'investment' : 'dashboard';
-        render();
-    } else {
-        document.getElementById('loginError').textContent = 'Invalid credentials';
-    }
-}
-
-        /* Other handlers remain the same */
-        function handleSignup(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('newUsername').value;
-    const password = document.getElementById('newPassword').value;
-    const userType = document.getElementById('userType').value;
-    
-    console.log('Sending signup data:', { username, userType }); // Debug log
-
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-    formData.append('userType', userType);
-
-    fetch('/signup', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString()
-    })
-    .then(response => {
-        console.log('Response status:', response.status); // Debug log
-        return response.json();
-    })
-    .then(data => {
-        console.log('Response data:', data); // Debug log
-        if (data.status === 'success') {
-            alert('Account created successfully!');
-            showLogin();
-        } else {
-            document.getElementById('signupError').textContent = 
-                data.message || 'Error creating account';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('signupError').textContent = 'Error connecting to server';
-    });
-}
-        function handleLogout() {
-            currentUser = null;
-            currentPage = 'dashboard';
-            isSignup = false;
-            render();
-        }
-
-        function showSignup() {
-            isSignup = true;
-            render();
-        }
-
-        function showLogin() {
-            isSignup = false;
-            render();
-        }
-
-        function changePage(page) {
+        function setPage(page) {
             currentPage = page;
             render();
         }
 
-        /* Modified render function */
+        function handleLogout() {
+            currentUser = null;
+            currentPage = 'login';
+            render();
+        }
+
+        function showSignup() {
+            currentPage = 'signup';
+            render();
+        }
+
+        function showLogin() {
+            currentPage = 'login';
+            render();
+        }
+
         function render() {
             const app = document.getElementById('app');
-            if (!currentUser) {app.innerHTML = isSignup ? renderSignup() : renderLogin();
+            if (!currentUser) {
+                app.innerHTML = currentPage === 'signup' ? renderSignup() : renderLogin();
                 return;
             }
 
-            /* render the page based on the current state and user role */
             let content = '';
-            switch (currentPage) {
+            switch(currentPage) {
                 case 'dashboard':
                     content = renderDashboard();
+                    break;
+                case 'tenant-portal':
+                    content = renderTenantPortal();
+                    break;
+                case 'user-management':
+                    content = renderUserManagement();
+                    break;
+                case 'investment':
+                    content = renderInvestment();
                     break;
                 case 'properties':
                     content = renderProperties();
@@ -496,26 +803,17 @@ function localLogin(username, password) {
                 case 'maintenance':
                     content = renderMaintenance();
                     break;
-                case 'investment':
-                    content = renderInvestment();
-                    break;
-                case 'tenant-portal':
-                    content = renderTenantPortal();
-                    break;
-                case 'user-management':
-                    content = renderUserManagement();
-                    break;
                 default:
-                    content = currentUser.role === 'tenant' ? renderTenantPortal() :
-                             currentUser.role === 'admin' ? renderUserManagement() :
-                             currentUser.role === 'investment_analyst' ? renderInvestment() :
-                             renderDashboard();
+                    content = renderDashboard();
             }
-            
+
             app.innerHTML = renderNavigation() + content;
+            if (currentPage === 'properties') {
+        fetchProperties();
+    }
         }
 
-        /* Initial render when page loads */
+        // Initialize the app
         render();
     </script>
 </body>
