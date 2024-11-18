@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Previous head content remains exactly the same -->
+    <title>Property Management System</title>
+    <style>
+        /* All existing styles remain exactly the same */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+        }
+        
+        .nav {
+            background-color: black;
+            padding: 1rem;
+            color: white;
+        }
+        
+        .nav button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+        
+        .nav button:hover {
+            background-color: grey;
+            border-radius: 4px;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: blue;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+        
+        button:hover {
+            background-color: blue;
+        }
+        
+        .error {
+            color: red;
+            margin-bottom: 1rem;
+        }
+
+        .secondary-button {
+            background-color: #666;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        /* Existing data remains the same */
+        const data = {
+            properties: [
+                { id: 1, address: "123 Main St", description: "Modern Apartment", value: 1200000, performance: 85.5 },
+                { id: 2, address: "456 Meridian Rd", description: "Commercial Space", value: 2500000, performance: 92.0 },
+                { id: 3, address: "789 Normal Ave", description: "Residential Home", value: 450000, performance: 78.3 }
+            ],
+            tenants: [
+                { id: 1, name: "Evan Lubinsky", property_id: 1, lease_start: "2024-01-01", lease_end: "2024-12-31", rent: 1500 },
+                { id: 2, name: "Aden Llewellyn", property_id: 1, lease_start: "2024-02-01", lease_end: "2024-12-31", rent: 1600 },
+                { id: 3, name: "Jake Dobson", property_id: 2, lease_start: "2024-01-15", lease_end: "2024-12-31", rent: 2500 }
+            ],
+            maintenance: [
+                { id: 1, property_id: 1, description: "Leaking faucet", status: "Open", created_at: "2024-03-15" },
+                { id: 2, property_id: 2, description: "HVAC repair", status: "In Progress", created_at: "2024-03-10" },
+                { id: 3, property_id: 1, description: "Broken window", status: "Resolved", created_at: "2024-03-01" }
+            ],
+            users: [
+                { id: 1, username: "backend", password: "backend123", role: "property_owner" },
+                { id: 2, username: "tenant1", password: "tenant123", role: "tenant" },
+                { id: 3, username: "admin", password: "admin123", role: "admin" },
+                { id: 4, username: "analyst", password: "analyst123", role: "investment_analyst" }
+            ]
+        };
+
+        /* Enhanced state management */
+        let currentUser = null;
+        let currentPage = 'dashboard';
+        let isSignup = false;
+
+        /* Login and Signup components remain the same */
+        function renderLogin() {
+    return `
+        <div class="login-container">
+            <h2>Property Management Login</h2>
+            <div id="loginError" class="error"></div> 
+            <form onsubmit="handleLogin(event)">
+                <input type="text" name="username" id="loginUsername" placeholder="Username" required>
+                <input type="password" name="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <button class="secondary-button" onclick="showSignup()">Sign Up</button>
+        </div>
+    `;
+}
+
+        function renderSignup() {
+            return `
+                <div class="login-container">
+                    <h2>Create Account</h2>
+                    <div id="signupError" class="error"></div>
+                    <form onsubmit="handleSignup(event)">
+                        <input type="text" id="newUsername" placeholder="Username" required>
+                        <input type="password" id="newPassword" placeholder="Password" required>
+                        <select id="userType" required>
+                            <option value="">Select Role</option>
+                            <option value="property_owner">Property Owner</option>
+                            <option value="admin">Admin</option>
+                            <option value="tenant">Tenant</option>
+                            <option value="investment_analyst">Investment Analyst</option>
+                        </select>
+                        <button type="submit">Create Account</button>
+                    </form>
+                    <button class="secondary-button" onclick="showLogin()">Back to Login</button>
+                </div>
+            `;
+        }
+
+        /* Role-based navigation */
+        function renderNavigation() {
+            let buttons = '';
+            
+            switch(currentUser.role) {
+                case 'property_owner':
+                    buttons = `
+                        <button onclick="changePage('dashboard')">Dashboard</button>
+                        <button onclick="changePage('properties')">Properties</button>
+                        <button onclick="changePage('tenants')">Tenants</button>
+                        <button onclick="changePage('maintenance')">Maintenance</button>
+                        <button onclick="changePage('investment')">Investment Analysis</button>
+                    `;
+                    break;
+                case 'tenant':
+                    buttons = `<button onclick="changePage('tenant-portal')">Tenant Portal</button>`;
+                    break;
+                case 'admin':
+                    buttons = `<button onclick="changePage('user-management')">User Management</button>`;
+                    break;
+                case 'investment_analyst':
+                    buttons = `<button onclick="changePage('investment')">Investment Analysis</button>`;
+                    break;
+            }
+            
+            return `
+                <div class="nav">
+                    ${buttons}
+                    <button onclick="handleLogout()">Logout</button>
+                </div>
+            `;
+        }
+
+        /* New role-specific components */
+        function renderTenantPortal() {
+            return `
+                <div class="content">
+                    <h2>Tenant Portal</h2>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Monthly Payment</h3>
+                            <p>Current Rent: $${data.tenants[0].rent}</p>
+                            <p>Due Date: 1st of each month</p>
+                            <button onclick="alert('Payment processing is not implemented in this demo')">Make Payment</button>
+                        </div>
+                        <div class="card">
+                            <h3>Maintenance Request</h3>
+                            <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
+                                <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
+                                <button type="submit">Submit Request</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUserManagement() {
+            return `
+                <div class="content">
+                    <h2>User Management</h2>
+                    ${data.users.map(user => `
+                        <div class="card">
+                            <h3>${user.username}</h3>
+                            <p>Role: ${user.role}</p>
+                            <button onclick="alert('Edit user functionality would go here')">Edit</button>
+                            <button onclick="alert('Delete user functionality would go here')" style="background-color: #ff4444;">Delete</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        /* All existing render functions remain the same */
+        function renderDashboard() {
+            const totalProperties = data.properties.length;
+            const totalRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
+            
+            return `
+                <div class="content">
+                    <h2>Dashboard</h2>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Properties</h3>
+                            <p>${totalProperties}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Monthly Income</h3>
+                            <p>$${totalRent.toLocaleString()}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Active Maintenance</h3>
+                            <p>${data.maintenance.filter(m => m.status !== 'Resolved').length}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* All other existing render functions remain exactly the same */
+        function renderProperties() {
+            return `
+                <div class="content">
+                    <h2>Properties</h2>
+                    <div class="grid">
+                        ${data.properties.map(property => `
+                            <div class="card">
+                                <h3>${property.address}</h3>
+                                <p>${property.description}</p>
+                                <p>Value: $${property.value.toLocaleString()}</p>
+                                <p>Performance: ${property.performance}%</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTenants() {
+            return `
+                <div class="content">
+                    <h2>Tenants</h2>
+                    ${data.tenants.map(tenant => `
+                        <div class="card">
+                            <h3>${tenant.name}</h3>
+                            <p>Property ID: ${tenant.property_id}</p>
+                            <p>Lease: ${tenant.lease_start} to ${tenant.lease_end}</p>
+                            <p>Rent: $${tenant.rent}/month</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderMaintenance() {
+            return `
+                <div class="content">
+                    <h2>Maintenance Requests</h2>
+                    ${data.maintenance.map(request => `
+                        <div class="card">
+                            <h3>Property ID: ${request.property_id}</h3>
+                            <p>${request.description}</p>
+                            <p>Status: ${request.status}</p>
+                            <p>Created: ${request.created_at}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderInvestment() {
+            const totalValue = data.properties.reduce((sum, property) => sum + property.value, 0);
+            const monthlyRent = data.tenants.reduce((sum, tenant) => sum + tenant.rent, 0);
+            const estimatedExpenses = monthlyRent * 0.4;
+            const monthlyProfit = monthlyRent - estimatedExpenses;
+            const annualProfit = monthlyProfit * 12;
+
+            return `
+                <div class="content">
+                    <h2>Investment Analysis</h2>
+                    <div class="grid">
+                        <div class="card">
+                            <h3>Net Worth</h3>
+                            <p>$${totalValue.toLocaleString()}</p>
+                            <p>Total Property Value</p>
+                        </div>
+                        <div class="card">
+                            <h3>Monthly Cash Flow</h3>
+                            <p>Income: $${monthlyRent.toLocaleString()}</p>
+                            <p>Expenses: $${estimatedExpenses.toLocaleString()}</p>
+                            <p>Net: $${monthlyProfit.toLocaleString()}</p>
+                        </div>
+                        <div class="card">
+                            <h3>Annual Profit/Loss</h3>
+                            <p>$${annualProfit.toLocaleString()}</p>
+                            <p>Based on current monthly performance</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* Modified login handler */
+        function handleLogin(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const username = formData.get('username');
+    const password = formData.get('password');
+
+    // Debug log
+    console.log('Attempting login for:', username);
+
+    fetch('/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server response:', data); // Debug log
+
+        if (data.status === 'success') {
+            // Set the user as logged in
+            currentUser = {
+                username: username,
+                // Check local data for role or use default
+                role: data.users?.find(u => u.username === username)?.role || 'property_owner'
+            };
+
+            // Debug log
+            console.log('Login successful, user:', currentUser);
+
+            // Set the appropriate landing page based on role
+            currentPage = currentUser.role === 'tenant' ? 'tenant-portal' : 
+                         currentUser.role === 'admin' ? 'user-management' :
+                         currentUser.role === 'investment_analyst' ? 'investment' : 'dashboard';
+
+            // Force a re-render
+            render();
+        } else {
+            console.log('Login failed:', data.message); // Debug log
+            document.getElementById('loginError').textContent = data.message || 'Invalid credentials';
+        }
+    })
+    .catch(error => {
+        console.error('Login error:', error);
+        document.getElementById('loginError').textContent = 'Error connecting to server';
+    });
+}
+
+// Add this new helper function for local authentication:
+function localLogin(username, password) {
+    const user = data.users.find(u => u.username === username && u.password === password);
+    if (user) {
+        currentUser = user;
+        currentPage = user.role === 'tenant' ? 'tenant-portal' : 
+                    user.role === 'admin' ? 'user-management' :
+                    user.role === 'investment_analyst' ? 'investment' : 'dashboard';
+        render();
+    } else {
+        document.getElementById('loginError').textContent = 'Invalid credentials';
+    }
+}
+
+        /* Other handlers remain the same */
+        function handleSignup(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('newUsername').value;
+    const password = document.getElementById('newPassword').value;
+    const userType = document.getElementById('userType').value;
+    
+    console.log('Sending signup data:', { username, userType }); // Debug log
+
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+    formData.append('userType', userType);
+
+    fetch('/signup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
+    })
+    .then(response => {
+        console.log('Response status:', response.status); // Debug log
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data); // Debug log
+        if (data.status === 'success') {
+            alert('Account created successfully!');
+            showLogin();
+        } else {
+            document.getElementById('signupError').textContent = 
+                data.message || 'Error creating account';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('signupError').textContent = 'Error connecting to server';
+    });
+}
+        function handleLogout() {
+            currentUser = null;
+            currentPage = 'dashboard';
+            isSignup = false;
+            render();
+        }
+
+        function showSignup() {
+            isSignup = true;
+            render();
+        }
+
+        function showLogin() {
+            isSignup = false;
+            render();
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            render();
+        }
+
+        /* Modified render function */
+        function render() {
+            const app = document.getElementById('app');
+            if (!currentUser) {app.innerHTML = isSignup ? renderSignup() : renderLogin();
+                return;
+            }
+
+            /* render the page based on the current state and user role */
+            let content = '';
+            switch (currentPage) {
+                case 'dashboard':
+                    content = renderDashboard();
+                    break;
+                case 'properties':
+                    content = renderProperties();
+                    break;
+                case 'tenants':
+                    content = renderTenants();
+                    break;
+                case 'maintenance':
+                    content = renderMaintenance();
+                    break;
+                case 'investment':
+                    content = renderInvestment();
+                    break;
+                case 'tenant-portal':
+                    content = renderTenantPortal();
+                    break;
+                case 'user-management':
+                    content = renderUserManagement();
+                    break;
+                default:
+                    content = currentUser.role === 'tenant' ? renderTenantPortal() :
+                             currentUser.role === 'admin' ? renderUserManagement() :
+                             currentUser.role === 'investment_analyst' ? renderInvestment() :
+                             renderDashboard();
+            }
+            
+            app.innerHTML = renderNavigation() + content;
+        }
+
+        /* Initial render when page loads */
+        render();
+    </script>
+</body>
+</html>
