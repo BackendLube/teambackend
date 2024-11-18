@@ -114,8 +114,14 @@ void handle_request(int client_socket) {
         bool success = pms.userLogin(username, password);
         
         if (success) {
+            // Get the user's role
+            string user_role = pms.getUserRole(username);
+            std::cout << "Retrieved role for user " << username << ": " << user_role << std::endl;
+            
+            // Send success response with role information
             response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
-            response += "{\"status\":\"success\",\"message\":\"Login successful\"}";
+            response += "{\"status\":\"success\",\"message\":\"Login successful\",\"user\":{\"username\":\"" + 
+                        username + "\",\"role\":\"" + user_role + "\"}}";
         } else {
             response = "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n";
             response += "{\"status\":\"error\",\"message\":\"Invalid username or password\"}";
@@ -161,8 +167,6 @@ void handle_request(int client_socket) {
             post_data += std::string(request_buffer, bytes_received);
             memset(request_buffer, 0, BUFFER_SIZE);
         }
-
-        std::cout << "Complete POST data: " << post_data << std::endl;
 
         std::string username, password, role;
         try {
@@ -230,6 +234,79 @@ void handle_request(int client_socket) {
         response += "<a href='/'>Back to Home</a>";
         response += "</body></html>";
     }
+    else if (strstr(buffer, "POST /add-property")) {
+    std::cout << "Received add property request" << std::endl;
+    
+    string post_data = request.substr(request.find("\r\n\r\n") + 4);
+    
+    // Parse the POST data
+    size_t username_pos = post_data.find("username=");
+    size_t address_pos = post_data.find("address=");
+    size_t date_pos = post_data.find("date=");
+    size_t price_pos = post_data.find("price=");
+    size_t rent_pos = post_data.find("rent=");
+
+    if (username_pos != string::npos && address_pos != string::npos && 
+        date_pos != string::npos && price_pos != string::npos && rent_pos != string::npos) {
+        
+        username_pos += 9; // length of "username="
+        address_pos += 8; // length of "address="
+        date_pos += 5;    // length of "date="
+        price_pos += 6;   // length of "price="
+        rent_pos += 5;    // length of "rent="
+
+        size_t username_end = post_data.find("&", username_pos);
+        size_t address_end = post_data.find("&", address_pos);
+        size_t date_end = post_data.find("&", date_pos);
+        size_t price_end = post_data.find("&", price_pos);
+        size_t rent_end = post_data.find("&", rent_pos);
+        if (rent_end == string::npos) rent_end = post_data.length();
+
+        string username = post_data.substr(username_pos, username_end - username_pos);
+        string address = post_data.substr(address_pos, address_end - address_pos);
+        string date = post_data.substr(date_pos, date_end - date_pos);
+        double price = stod(post_data.substr(price_pos, price_end - price_pos));
+        double monthly_rent = stod(post_data.substr(rent_pos, rent_end - rent_pos));
+
+        bool success = pms.addProperty(username, address, date, price, monthly_rent);
+
+        if (success) {
+            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
+            response += "{\"status\":\"success\",\"message\":\"Property added successfully\"}";
+        } else {
+            response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n";
+            response += "{\"status\":\"error\",\"message\":\"Failed to add property\"}";
+        }
+    } else {
+        response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n";
+        response += "{\"status\":\"error\",\"message\":\"Missing required fields\"}";
+    }
+}
+
+// In server.cpp, modify the GET /properties/ route handler:
+else if (strstr(buffer, "GET /properties/")) {
+    string username = request.substr(request.find("username=") + 9);
+    username = username.substr(0, username.find(" HTTP"));
+    
+    vector<map<string, string>> properties = pms.getPropertiesByUser(username);
+    
+    response = "HTTP/1.1 200 OK\r\n";
+    response += "Content-Type: application/json\r\n";
+    response += "Connection: close\r\n\r\n";
+    response += "[";
+    
+    for (size_t i = 0; i < properties.size(); i++) {
+        if (i > 0) response += ",";
+        response += "{";
+        response += "\"id\":\"" + properties[i]["id"] + "\",";
+        response += "\"address\":\"" + properties[i]["address"] + "\",";
+        response += "\"date_added\":\"" + properties[i]["date_added"] + "\",";
+        response += "\"price\":\"" + properties[i]["price"] + "\",";
+        response += "\"monthly_rent\":\"" + properties[i]["monthly_rent"] + "\"";
+        response += "}";
+    }
+    response += "]";
+}
     else {
         response = "HTTP/1.1 404 Not Found\r\n";
         response += "Content-Type: text/html\r\n";
