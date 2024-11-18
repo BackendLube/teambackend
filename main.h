@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 #include <map>
-// Add these necessary headers for socket programming
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -19,7 +18,6 @@ class PropertyManagementSystem {
 private:
     MYSQL* conn;
 
-    // Original socket connection for frontend
     int connectToDb() {
         int sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock < 0) {
@@ -45,10 +43,8 @@ private:
         int sock = connectToDb();
         if (sock < 0) return "ERROR Database connection failed";
 
-        // Send request
         send(sock, request.c_str(), request.length(), 0);
 
-        // Get response
         char buffer[1024] = {0};
         read(sock, buffer, sizeof(buffer) - 1);
         
@@ -56,7 +52,6 @@ private:
         return std::string(buffer);
     }
 
-    // MySQL initialization
     bool initializeDB() {
         conn = mysql_init(NULL);
         if (conn == NULL) {
@@ -64,15 +59,14 @@ private:
             return false;
         }
 
-        // Connect to MySQL database
         if (!mysql_real_connect(conn,
-            "127.0.0.1",  // host
-            "root",       // user
-            "Lubinsky6",  // password
-            "server",     // database
-            3306,         // port
-            NULL,         // unix socket
-            0            // client flag
+            "localhost",  // Changed from 127.0.0.1 to localhost
+            "root",       
+            "Lubinsky6",  
+            "server",     
+            3306,         
+            NULL,         
+            0            
         )) {
             std::cerr << "Database connection failed: " << mysql_error(conn) << std::endl;
             return false;
@@ -83,6 +77,32 @@ private:
     }
 
 public:
+MYSQL* getConnection() { return conn; }
+
+    string getUserRole(const string& username) {
+        if (!conn) return "";
+        
+        char* escaped_username = new char[username.length() * 2 + 1];
+        mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+        
+        string query = "SELECT role FROM users WHERE username='" + string(escaped_username) + "'";
+        delete[] escaped_username;
+
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "Role query failed: " << mysql_error(conn) << std::endl;
+            return "";
+        }
+
+        MYSQL_RES* result = mysql_store_result(conn);
+        string role = "";
+        
+        if (MYSQL_ROW row = mysql_fetch_row(result)) {
+            role = row[0];
+        }
+        
+        mysql_free_result(result);
+        return role;
+    }
     PropertyManagementSystem() {
         if (!initializeDB()) {
             throw std::runtime_error("Failed to initialize database connection");
@@ -95,65 +115,29 @@ public:
         }
     }
 
-  // In test.h, update the createAccount method:
-
-bool createAccount(const string& username, const string& password, const string& role) {
-    try {
-        if (!conn) {
-            std::cerr << "No database connection" << std::endl;
-            return false;
-        }
-
-        // First check if username exists
-        string check_query = "SELECT COUNT(*) FROM users WHERE username = '" + username + "'";
-        
-        if (mysql_query(conn, check_query.c_str())) {
-            std::cerr << "Username check failed: " << mysql_error(conn) << std::endl;
-            return false;
-        }
-
-        MYSQL_RES* result = mysql_store_result(conn);
-        if (!result) {
-            std::cerr << "Failed to get query result" << std::endl;
-            return false;
-        }
-
-        MYSQL_ROW row = mysql_fetch_row(result);
-        if (row && atoi(row[0]) > 0) {
-            mysql_free_result(result);
-            std::cerr << "Username already exists" << std::endl;
-            return false;
-        }
-        mysql_free_result(result);
-
-        // Create insert query
-        string insert_query = "INSERT INTO users (username, password, role) VALUES ('" +
-                            username + "', '" + password + "', '" + role + "')";
-        
-        std::cout << "Executing query: " << insert_query << std::endl;
-        
-        if (mysql_query(conn, insert_query.c_str())) {
-            std::cerr << "Account creation failed: " << mysql_error(conn) << std::endl;
-            return false;
-        }
-
-        if (mysql_affected_rows(conn) > 0) {
-            std::cout << "Account successfully created in database" << std::endl;
-            return true;
-        } else {
-            std::cerr << "No rows were inserted" << std::endl;
-            return false;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Exception during account creation: " << e.what() << std::endl;
-        return false;
-    }
-}
     bool userLogin(const string& username, const string& password) {
-        // Check MySQL database
-        string query = "SELECT COUNT(*) FROM users WHERE username='" + 
-                      username + "' AND password='" + password + "'";
-                      
+        if (!conn) {
+            std::cerr << "No database connection for login" << std::endl;
+            return false;
+        }
+
+        // Escape the input strings to prevent SQL injection
+        char* escaped_username = new char[username.length() * 2 + 1];
+        char* escaped_password = new char[password.length() * 2 + 1];
+        
+        mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+        mysql_real_escape_string(conn, escaped_password, password.c_str(), password.length());
+
+        // Create the query
+        string query = "SELECT * FROM users WHERE username='" + 
+                      string(escaped_username) + "' AND password='" + 
+                      string(escaped_password) + "'";
+
+        delete[] escaped_username;
+        delete[] escaped_password;
+
+        std::cout << "Executing login query: " << query << std::endl;  // Debug log
+
         if (mysql_query(conn, query.c_str())) {
             std::cerr << "Login query failed: " << mysql_error(conn) << std::endl;
             return false;
@@ -161,18 +145,92 @@ bool createAccount(const string& username, const string& password, const string&
 
         MYSQL_RES* result = mysql_store_result(conn);
         if (result == NULL) {
+            std::cerr << "Failed to get query result" << std::endl;
             return false;
         }
 
-        MYSQL_ROW row = mysql_fetch_row(result);
-        bool valid = (row && atoi(row[0]) > 0);
+        // Check if we got any rows
+        my_ulonglong num_rows = mysql_num_rows(result);
+        std::cout << "Found " << num_rows << " matching users" << std::endl;  // Debug log
+
+        bool valid = (num_rows > 0);
         mysql_free_result(result);
 
-        // Also send to original socket system for frontend compatibility
-        std::string request = "LOGIN " + username + " " + password;
-        sendDbRequest(request);
-        
         return valid;
+    }
+
+    bool createAccount(const string& username, const string& password, const string& role) {
+        try {
+            if (!conn) {
+                std::cerr << "No database connection" << std::endl;
+                return false;
+            }
+
+            // First check if username exists
+            char* escaped_username = new char[username.length() * 2 + 1];
+            mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+            
+            string check_query = "SELECT COUNT(*) FROM users WHERE username = '" + 
+                               string(escaped_username) + "'";
+            
+            delete[] escaped_username;
+
+            if (mysql_query(conn, check_query.c_str())) {
+                std::cerr << "Username check failed: " << mysql_error(conn) << std::endl;
+                return false;
+            }
+
+            MYSQL_RES* result = mysql_store_result(conn);
+            if (!result) {
+                std::cerr << "Failed to get query result" << std::endl;
+                return false;
+            }
+
+            MYSQL_ROW row = mysql_fetch_row(result);
+            if (row && atoi(row[0]) > 0) {
+                mysql_free_result(result);
+                std::cerr << "Username already exists" << std::endl;
+                return false;
+            }
+            mysql_free_result(result);
+
+            // Escape all input strings
+            char* escaped_password = new char[password.length() * 2 + 1];
+            char* escaped_role = new char[role.length() * 2 + 1];
+            escaped_username = new char[username.length() * 2 + 1];
+            
+            mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+            mysql_real_escape_string(conn, escaped_password, password.c_str(), password.length());
+            mysql_real_escape_string(conn, escaped_role, role.c_str(), role.length());
+
+            // Create insert query with escaped strings
+            string insert_query = "INSERT INTO users (username, password, role) VALUES ('" +
+                                string(escaped_username) + "', '" + 
+                                string(escaped_password) + "', '" + 
+                                string(escaped_role) + "')";
+
+            delete[] escaped_username;
+            delete[] escaped_password;
+            delete[] escaped_role;
+            
+            std::cout << "Executing query: " << insert_query << std::endl;
+            
+            if (mysql_query(conn, insert_query.c_str())) {
+                std::cerr << "Account creation failed: " << mysql_error(conn) << std::endl;
+                return false;
+            }
+
+            if (mysql_affected_rows(conn) > 0) {
+                std::cout << "Account successfully created in database" << std::endl;
+                return true;
+            } else {
+                std::cerr << "No rows were inserted" << std::endl;
+                return false;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Exception during account creation: " << e.what() << std::endl;
+            return false;
+        }
     }
 
     void submitMaintenanceRequest(int tenantId, const string& description) {
