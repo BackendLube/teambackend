@@ -77,6 +77,32 @@ private:
     }
 
 public:
+MYSQL* getConnection() { return conn; }
+
+    string getUserRole(const string& username) {
+        if (!conn) return "";
+        
+        char* escaped_username = new char[username.length() * 2 + 1];
+        mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+        
+        string query = "SELECT role FROM users WHERE username='" + string(escaped_username) + "'";
+        delete[] escaped_username;
+
+        if (mysql_query(conn, query.c_str())) {
+            std::cerr << "Role query failed: " << mysql_error(conn) << std::endl;
+            return "";
+        }
+
+        MYSQL_RES* result = mysql_store_result(conn);
+        string role = "";
+        
+        if (MYSQL_ROW row = mysql_fetch_row(result)) {
+            role = row[0];
+        }
+        
+        mysql_free_result(result);
+        return role;
+    }
     PropertyManagementSystem() {
         if (!initializeDB()) {
             throw std::runtime_error("Failed to initialize database connection");
@@ -206,6 +232,40 @@ public:
             return false;
         }
     }
+
+    // Add this to the PropertyManagementSystem class public section
+bool addProperty(const string& username, const string& address, const string& date, 
+                double price, double monthly_rent) {
+    if (!conn) {
+        std::cerr << "No database connection" << std::endl;
+        return false;
+    }
+
+    // Escape strings to prevent SQL injection
+    char* escaped_address = new char[address.length() * 2 + 1];
+    char* escaped_username = new char[username.length() * 2 + 1];
+    
+    mysql_real_escape_string(conn, escaped_address, address.c_str(), address.length());
+    mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+
+    // Create the query
+    string query = "INSERT INTO property (owner_username, address, date_added, price, monthly_rent) "
+                  "VALUES ('" + string(escaped_username) + "', '" + 
+                  string(escaped_address) + "', '" + date + "', " + 
+                  to_string(price) + ", " + to_string(monthly_rent) + ")";
+
+    delete[] escaped_address;
+    delete[] escaped_username;
+
+    std::cout << "Executing query: " << query << std::endl;
+
+    if (mysql_query(conn, query.c_str())) {
+        std::cerr << "Property addition failed: " << mysql_error(conn) << std::endl;
+        return false;
+    }
+
+    return mysql_affected_rows(conn) > 0;
+}
 
     void submitMaintenanceRequest(int tenantId, const string& description) {
         // Store in MySQL
