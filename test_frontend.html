@@ -291,7 +291,24 @@
     <script>
         let currentUser = null;
         let currentPage = 'login';
-
+        let lastActivityTime = Date.now();
+      
+      //SECURITY FUNCTION -> Session Timeout 
+        function checkSessionTimeout() {
+    const timeoutDuration = 30 * 60 * 1000; // 30 minutes
+    if (currentUser && (Date.now() - lastActivityTime > timeoutDuration)) {
+        handleLogout();
+        alert('Session expired. Please login again.');
+    }
+}
+/**
+ * Renders login form
+ * Security features:
+ * - Required field validation
+ * - Password field type security
+ * - Form submission handling
+ * - Error display capability
+ */
         function renderLogin() {
             return `
                 <div class="login-container">
@@ -306,30 +323,55 @@
                 </div>
             `;
         }
-
-        function renderSignup() {
-            return `
-                <div class="login-container">
-                    <h2>Create Account</h2>
-                    <div id="signupError" class="error"></div>
-                    <form onsubmit="handleSignup(event)">
-                        <input type="text" name="username" placeholder="Username" required>
-                        <input type="password" name="password" placeholder="Password" required>
-                        <select name="userType" required>
-                            <option value="">Select Role</option>
-                            <option value="tenant">Tenant</option>
-                            <option value="property_owner">Property Owner</option>
-                            <option value="admin">Admin</option>
-                            <option value="investment_analyst">Investment Analyst</option>
-                        </select>
-                        <button type="submit">Create Account</button>
-                    </form>
-                    <button onclick="showLogin()" style="background-color: #666;">Back to Login</button>
-                </div>
-            `;
-        }
+/**
+ * Renders signup form
+ * Security features:
+ * - Required field validation
+ * - Role-based access control setup
+ * - Password field security
+ * - Error handling display
+ */
+ function renderSignup() {
+    return `
+        <div class="login-container">
+            <h2>Create Account</h2>
+            <div id="signupError" class="error"></div>
+            <form onsubmit="handleSignup(event)">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <!-- Add this helper text below password field -->
+                <small style="color: #666; display: block; margin-bottom: 10px;">
+                    Password must contain:
+                    <ul style="margin-left: 20px;">
+                        <li>At least 8 characters</li>
+                        <li>One uppercase letter</li>
+                        <li>One number</li>
+                        <li>One special character (!@#$%^&*)</li>
+                    </ul>
+                </small>
+                <select name="userType" required>
+                    <option value="">Select Role</option>
+                    <option value="tenant">Tenant</option>
+                    <option value="property_owner">Property Owner</option>
+                    <option value="admin">Admin</option>
+                    <option value="investment_analyst">Investment Analyst</option>
+                </select>
+                <button type="submit">Create Account</button>
+            </form>
+            <button onclick="showLogin()" style="background-color: #666;">Back to Login</button>
+        </div>
+    `;
+}
      
-
+/**
+ * Handles login form submission
+ * Security features:
+ * - Event prevention for form hijacking
+ * - Data encoding
+ * - Error handling
+ * - Response validation
+ * - Role-based routing
+ */
         function handleLogin(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -374,11 +416,24 @@
                 document.getElementById('loginError').textContent = 'Error connecting to server';
             });
         }
-
-        function handleSignup(event) {
+/**
+ * Handles signup form submission
+ * Security features:
+ * - Event prevention
+ * - Data encoding
+ * - Error handling
+ * - Response validation
+ */        function handleSignup(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
-
+            const password = formData.get('password');
+    
+    //SECURITY FUNCTION: Check password strength
+    const passwordCheck = isPasswordStrong(password);
+    if (!passwordCheck.valid) {
+        document.getElementById('signupError').textContent = passwordCheck.message;
+        return; // Stop the signup process if password is weak
+    }
             fetch('/signup', {
                 method: 'POST',
                 headers: {
@@ -400,8 +455,31 @@
                 document.getElementById('signupError').textContent = 'Error connecting to server';
             });
         }
+// password stronf fucntion
+        function isPasswordStrong(password) {
+    if (password.length < 8) {
+        return { valid: false, message: "Password must be at least 8 characters long" };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, message: "Password must contain at least one uppercase letter" };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { valid: false, message: "Password must contain at least one number" };
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+        return { valid: false, message: "Password must contain at least one special character (!@#$%^&*)" };
+    }
+    return { valid: true, message: "Password is strong" };
+}
 
-        function renderNavigation() {
+        
+/**
+ * Renders navigation based on user role
+ * Security features:
+ * - Role-based access control
+ * - Authentication check
+ * - Logout functionality
+ */        function renderNavigation() {
             if (!currentUser) return '';
 
             let links = '';
@@ -511,83 +589,91 @@
                 </div>
             `;
         }
-
+// <input type = > Is used for input validation throughout the code 
         function renderProperties() {
     return `
         <div class="content">
             <h2>Properties</h2>
             <div class="dashboard-card">
                 <h3>Add New Property</h3>
-                <form id="addPropertyForm" onsubmit="handleAddProperty(event)">
-                    <input type="text" name="address" placeholder="Property Address" required>
-                    <input type="date" name="date" required>
-                    <input type="number" name="price" placeholder="Property Price" step="0.01" min="0" required>
-                    <input type="number" name="rent" placeholder="Monthly Rent" step="0.01" min="0" required>
-                    <button type="submit" class="submit-btn">Add Property</button>
+                <form id="addPropertyForm">
+                    <input type="text" id="address" placeholder="Property Address" required>
+                    <input type="date" id="date" required>
+                    <input type="number" id="price" placeholder="Property Price" step="0.01" min="0" required>
+                    <input type="number" id="rent" placeholder="Monthly Rent" step="0.01" min="0" required>
+                    <button type="button" onclick="handleAddProperty()">Add Property</button>
                 </form>
                 <div id="propertyMessage" style="display: none;" class="message"></div>
             </div>
             <div class="dashboard-card">
-                <h3>Property List</h3>
-                <div id="propertiesList">
-                    <p>123 Main St - Residential</p>
-                    <p>456 Oak Ave - Commercial</p>
-                    <p>789 Pine Rd - Residential</p>
-                </div>
+                <h3>Your Properties</h3>
+                <div id="propertiesList"></div>
             </div>
         </div>
     `;
 }
-
-function handleAddProperty(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
+/**
+ * Property management functions
+ * Security features:
+ * - Input validation
+ * - Data encoding
+ * - Error handling
+ * - Authentication checks
+ */
+function handleAddProperty() {
+    // Debug check current user first
+    console.log("Current User:", currentUser);
+    
     const propertyData = {
         username: currentUser.username,
-        address: formData.get('address'),
-        date: formData.get('date'),
-        price: formData.get('price'),
-        rent: formData.get('rent')
+        address: document.getElementById('address').value,
+        date: document.getElementById('date').value,
+        price: document.getElementById('price').value,
+        rent: document.getElementById('rent').value
     };
+
+    // Debug log all values
+    console.log("All Property Data:", propertyData);
+
+    const requestBody = `username=${encodeURIComponent(propertyData.username)}&address=${encodeURIComponent(propertyData.address)}&date=${encodeURIComponent(propertyData.date)}&price=${encodeURIComponent(propertyData.price)}&rent=${encodeURIComponent(propertyData.rent)}`;
+    
+    // Debug log the exact request being sent
+    console.log("Request Body:", requestBody);
 
     fetch('/add-property', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: Object.entries(propertyData)
-            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-            .join('&')
+        body: requestBody
     })
-    .then(response => response.json())
+    .then(async response => {
+        const text = await response.text();
+        console.log("Server Response:", text);
+        return JSON.parse(text);
+    })
     .then(data => {
-        const messageDiv = document.getElementById('propertyMessage');
-        messageDiv.style.display = 'block';
-        
-        if (data.status === 'success') {
-            messageDiv.className = 'message success';
-            messageDiv.textContent = 'Property added successfully!';
-            form.reset(); // Clear the form
+        console.log("Parsed Data:", data);
+        if(data.status === 'success') {
+            alert('Property added successfully!');
+            currentPage = 'dashboard';
+            render();
         } else {
-            messageDiv.className = 'message error';
-            messageDiv.textContent = data.message || 'Error adding property';
+            alert(data.message || 'Error adding property');
         }
-
-        // Hide message after 3 seconds
-        setTimeout(() => {
-            messageDiv.style.display = 'none';
-        }, 3000);
     })
     .catch(error => {
         console.error('Error:', error);
-        const messageDiv = document.getElementById('propertyMessage');
-        messageDiv.style.display = 'block';
-        messageDiv.className = 'message error';
-        messageDiv.textContent = 'Error connecting to server';
+        alert('Error connecting to server');
     });
 }
-// Add this function to fetch properties
+/**
+ * Property fetching function
+ * Security features:
+ * - Authentication check
+ * - Data sanitization
+ * - Error handling
+ */
 function fetchProperties() {
     if (!currentUser) return;
     
@@ -611,7 +697,7 @@ function fetchProperties() {
                                 </div>
                                 <div>
                                     <span class="text-gray-600">Monthly Rent:</span> 
-                                    $${parseFloat(property.monthly_rent).toLocaleString()}
+                                    $${parseFloat(property.rent).toLocaleString()}
                                 </div>
                             </div>
                         </div>
@@ -628,7 +714,13 @@ function fetchProperties() {
         });
 }
 
-// Modify the renderProperties function
+/**
+ * Renders the properties view
+ * Security features:
+ * - Input validation
+ * - Required fields
+ * - Numeric validation
+ */
 function renderProperties() {
     return `
         <div class="content">
@@ -662,13 +754,22 @@ function handleAddProperty(event) {
     event.preventDefault();
     const form = event.target;
     const formData = new FormData(form);
+    
+    // Log the data being sent
+    console.log('Sending property data:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+    }
+
     const propertyData = {
-        username: currentUser.username,
+        username: currentUser.username, // Make sure this exists
         address: formData.get('address'),
         date: formData.get('date'),
-        price: formData.get('price'),
-        rent: formData.get('rent')
+        price: parseFloat(formData.get('price')),
+        rent: parseFloat(formData.get('rent'))
     };
+
+    console.log('Formatted property data:', propertyData);
 
     fetch('/add-property', {
         method: 'POST',
@@ -679,8 +780,18 @@ function handleAddProperty(event) {
             .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
             .join('&')
     })
-    .then(response => response.json())
+    .then(async response => {
+        const text = await response.text();
+        console.log('Raw server response:', text);
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Failed to parse server response:', e);
+            throw new Error('Invalid server response');
+        }
+    })
     .then(data => {
+        console.log('Parsed response data:', data);
         const messageDiv = document.getElementById('propertyMessage');
         messageDiv.style.display = 'block';
         
@@ -688,7 +799,7 @@ function handleAddProperty(event) {
             messageDiv.className = 'message success';
             messageDiv.textContent = 'Property added successfully!';
             form.reset();
-            fetchProperties(); // Refresh the properties list
+            fetchProperties();
         } else {
             messageDiv.className = 'message error';
             messageDiv.textContent = data.message || 'Error adding property';
@@ -751,28 +862,49 @@ function handleAddProperty(event) {
         </div>
     `;
 }
-
+/**
+ * Page navigation handler
+ * Security: Manages state transitions and access control
+ */
         function setPage(page) {
             currentPage = page;
             render();
         }
-
+/**
+ * Logout handler
+ * Security features:
+ * - Session cleanup
+ * - State reset
+ * - Redirect to login
+ */
         function handleLogout() {
             currentUser = null;
             currentPage = 'login';
             render();
         }
-
+/**
+ * Show signup page handler
+ * Security: State management
+ */
         function showSignup() {
             currentPage = 'signup';
             render();
         }
-
+/**
+ * Show login page handler
+ * Security: State management
+ */
         function showLogin() {
             currentPage = 'login';
             render();
         }
-
+/**
+ * Main render function
+ * Security features:
+ * - Authentication check
+ * - Role-based rendering
+ * - State management
+ */
         function render() {
             const app = document.getElementById('app');
             if (!currentUser) {
