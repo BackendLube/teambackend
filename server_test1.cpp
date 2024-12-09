@@ -390,26 +390,31 @@ else if (strstr(buffer, "GET /properties/")) {
     response += "[";
     
     for (size_t i = 0; i < properties.size(); i++) {
+        string address = properties[i]["address"];
+        size_t pos = 0;
+        while ((pos = address.find("%20")) != string::npos) {
+            address.replace(pos, 3, " ");
+        }
+
         if (i > 0) response += ",";
         response += "{";
         response += "\"id\":\"" + properties[i]["id"] + "\",";
-        response += "\"address\":\"" + properties[i]["address"] + "\",";
+        response += "\"address\":\"" + address + "\",";
         response += "\"date_added\":\"" + properties[i]["date_added"] + "\",";
         response += "\"price\":\"" + properties[i]["price"] + "\",";
-        response += "\"rent_rent\":\"" + properties[i]["rent_rent"] + "\"";
+        response += "\"rent\":\"" + properties[i]["rent"] + "\"";
         response += "}";
     }
     response += "]";
 }
-    else {
-        response = "HTTP/1.1 404 Not Found\r\n";
-        response += "Content-Type: text/html\r\n";
-        response += "Connection: close\r\n\r\n";
-        response += "<html><body><h1>404 Not Found</h1></body></html>";
-    }
-
-    send(client_socket, response.c_str(), response.size(), 0);
-    close(client_socket);
+else {
+    response = "HTTP/1.1 404 Not Found\r\n";
+    response += "Content-Type: text/html\r\n";
+    response += "Connection: close\r\n\r\n";
+    response += "<html><body><h1>404 Not Found</h1></body></html>";
+}
+send(client_socket, response.c_str(), response.size(), 0);
+close(client_socket);
 }
 /**
  * Main server function
