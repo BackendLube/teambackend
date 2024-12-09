@@ -331,6 +331,13 @@ inline bool PropertyManagementSystem::addProperty(const string& username, const 
         return false;
     }
 
+ string decoded_address = address;
+    size_t pos = 0;
+    while ((pos = decoded_address.find("%20", pos)) != string::npos) {
+        decoded_address.replace(pos, 3, " ");
+        pos += 1;
+    }
+    
     char* escaped_address = new char[address.length() * 2 + 1];
     char* escaped_username = new char[username.length() * 2 + 1];
     
@@ -441,16 +448,14 @@ inline vector<map<string, string> > PropertyManagementSystem::getPropertiesByUse
         return properties;
     }
 
-    // Process results and build return data
     MYSQL_ROW row;
     while ((row = mysql_fetch_row(result))) {
         map<string, string> property;
         property["id"] = row[0];
-        // Escape the address before sending to frontend
-        property["address"] = escapeHtml(row[1]);
-        property["date_added"] = row[2];
-        property["price"] = row[3];
-        property["rent"] = row[4];
+        property["address"] = row[1] ? row[1] : "";  // Handle NULL values
+        property["date_added"] = row[2] ? row[2] : "";
+        property["price"] = row[3] ? row[3] : "0";
+        property["rent"] = row[4] ? row[4] : "0";
         properties.push_back(property);
     }
 
