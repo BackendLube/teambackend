@@ -146,6 +146,27 @@ void handle_request(int client_socket) {
             response += "{\"status\":\"error\",\"message\":\"Invalid signup request\"}";
         }
     }
+
+    else if (strstr(buffer, "GET /financial-overview/")) {
+        std::string username = request.substr(request.find("username=") + 9);
+        username = username.substr(0, username.find(" HTTP"));
+
+    // Retrieve financial overview for the user
+        std::map<std::string, double> financials = pms.getFinancialOverview(username);
+
+    // Create a JSON response
+        response = "HTTP/1.1 200 OK\r\n";
+        response += "Content-Type: application/json\r\n";
+        response += "Connection: close\r\n\r\n";
+        response += "{";
+        response += "\"Gross Operating Income (GOI)\":" + std::to_string(financials["Gross Operating Income (GOI)"]) + ",";
+        response += "\"Operating Expenses\":" + std::to_string(financials["Operating Expenses"]) + ",";
+        response += "\"Net Operating Income (NOI)\":" + std::to_string(financials["Net Operating Income (NOI)"]) + ",";
+        response += "\"Capitalization Rate (%)\":" + std::to_string(financials["Capitalization Rate (%)"]);
+        response += "}";
+}
+
+    
     else {
         response = "HTTP/1.1 404 Not Found\r\n";
         response += "Content-Type: text/html\r\n";
