@@ -728,6 +728,38 @@ function fetchProperties() {
  * - Required fields
  * - Numeric validation
  */
+        <script>
+    // Fetch maintenance requests from the server
+    function fetchMaintenanceRequests() {
+        if (!currentUser) return;
+
+        // Call to the backend to fetch maintenance requests for the current user's properties
+        fetch(`/maintenance-requests/?username=${encodeURIComponent(currentUser.username)}`)
+            .then(response => response.json())
+            .then(requests => {
+                const maintenanceRequestsList = document.getElementById('maintenanceRequestsList');
+                if (maintenanceRequestsList) {
+                    maintenanceRequestsList.innerHTML = requests.length > 0 
+                        ? requests.map(request => `
+                            <div class="maintenance-item p-4 border-b">
+                                <h4>${request.property_address}</h4>
+                                <p><strong>Issue:</strong> ${request.issue_description}</p>
+                                <p><strong>Status:</strong> ${request.status}</p>
+                                <p><strong>Date:</strong> ${new Date(request.date_submitted).toLocaleDateString()}</p>
+                            </div>
+                        `).join('')
+                        : '<p class="text-gray-500">No maintenance requests found</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching maintenance requests:', error);
+                const maintenanceRequestsList = document.getElementById('maintenanceRequestsList');
+                if (maintenanceRequestsList) {
+                    maintenanceRequestsList.innerHTML = '<p class="text-red-500">Error loading maintenance requests</p>';
+                }
+            });
+    }
+
 function renderProperties() {
     return `
         <div class="content">
