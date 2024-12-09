@@ -517,22 +517,43 @@
         }
 
         function renderDashboard() {
-            return `
-                <div class="content">
+    // Fetch financial overview when dashboard loads
+    fetch(`/financial-overview/?username=${encodeURIComponent(currentUser.username)}`)
+        .then(response => response.json())
+        .then(financials => {
+            const dashboardContent = document.querySelector('.content');
+            if (dashboardContent) {
+                dashboardContent.innerHTML = `
                     <h2>Dashboard</h2>
                     <div class="dashboard-card">
                         <h3>Properties Overview</h3>
-                        <p>Total Properties: 3</p>
-                        <p>Occupancy Rate: 85%</p>
+                        <p>Total Properties: ${Math.round(financials["propertyCount"])}</p>
+                        <p>Total Portfolio Value: $${financials["totalValue"].toLocaleString()}</p>
                     </div>
                     <div class="dashboard-card">
                         <h3>Financial Summary</h3>
-                        <p>Monthly Revenue: $15,000</p>
-                        <p>Outstanding Payments: $2,500</p>
+                        <p>Total Monthly Rental Income: $${financials["totalRent"].toLocaleString()}</p>
+                        <p>Average Rent per Property: $${financials["averageRent"].toLocaleString()}</p>
+                        <p>Gross Operating Income (Annual): $${(financials["totalRent"] * 12).toLocaleString()}</p>
+                        <p>Net Operating Income (Est.): $${(financials["totalRent"] * 12 * 0.7).toLocaleString()}</p>
+                        <p>Cap Rate: ${((financials["totalRent"] * 12 * 0.7 / financials["totalValue"]) * 100).toFixed(2)}%</p>
                     </div>
-                </div>
-            `;
-        }
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching financial overview:', error);
+        });
+
+    return `
+        <div class="content">
+            <h2>Dashboard</h2>
+            <div class="dashboard-card">
+                <h3>Loading financial data...</h3>
+            </div>
+        </div>
+    `;
+}
 
         function renderTenantPortal() {
             return `
