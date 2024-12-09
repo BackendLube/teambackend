@@ -315,7 +315,29 @@ else if (strstr(buffer, "POST /add-property")) {
         response += "{\"status\":\"error\",\"message\":\"Missing required fields\"}";
     }
 }
-// In server.cpp, modify the GET /properties/ route handler:
+// Submits a maintenance request from a tenant
+void PropertyManagementSystem::submitMaintenanceRequest(int tenantId, const string& description) {
+    if (!conn) return;  // Ensure there is a valid connection
+
+    // Escape the description to prevent SQL injection
+    char* escaped_description = new char[description.length() * 2 + 1];
+    mysql_real_escape_string(conn, escaped_description, description.c_str(), description.length());
+
+    // Build the SQL query to insert the maintenance request
+    string query = "INSERT INTO maintenance_requests (tenant_id, description) VALUES (" +
+                   to_string(tenantId) + ", '" + string(escaped_description) + "')";
+
+    // Execute the query
+    if (mysql_query(conn, query.c_str())) {
+        std::cerr << "Maintenance request submission failed: " << mysql_error(conn) << std::endl;
+    }
+
+    // Clean up dynamically allocated memory
+    delete[] escaped_description;
+}
+
+    
+    // In server.cpp, modify the GET /properties/ route handler:
 else if (strstr(buffer, "GET /properties/")) {
     string username = request.substr(request.find("username=") + 9);
     username = username.substr(0, username.find(" HTTP"));
