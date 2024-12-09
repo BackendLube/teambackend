@@ -976,44 +976,52 @@ function handleAddProperty(event) {
  * - State management
  */
         function render() {
-            const app = document.getElementById('app');
-            if (!currentUser) {
-                app.innerHTML = currentPage === 'signup' ? renderSignup() : renderLogin();
-                return;
-            }
+    const app = document.getElementById('app');
+    if (!currentUser) {
+        app.innerHTML = currentPage === 'signup' ? renderSignup() : renderLogin();
+        return;
+    }
 
-            let content = '';
-            switch(currentPage) {
-                case 'dashboard':
-                    content = renderDashboard();
-                    break;
-                case 'tenant-portal':
-                    content = renderTenantPortal();
-                    break;
-                case 'user-management':
-                    content = renderUserManagement();
-                    break;
-                case 'investment':
-                    content = renderInvestment();
-                    break;
-                case 'properties':
-                    content = renderProperties();
-                    break;
-                case 'tenants':
-                    content = renderTenants();
-                    break;
-                case 'maintenance':
-                    content = renderMaintenance();
-                    break;
-                default:
-                    content = renderDashboard();
-            }
+    let content = '';
+    switch(currentPage) {
+        case 'dashboard':
+            content = renderDashboard();
+            break;
+        case 'tenant-portal':
+            content = renderTenantPortal();
+            break;
+        case 'user-management':
+            content = renderUserManagement();
+            break;
+        case 'investment':
+            content = renderInvestment();
+            break;
+        case 'properties':
+            content = renderProperties();
+            break;
+        case 'tenants':
+            content = renderTenants();
+            break;
+        case 'maintenance':
+            content = renderMaintenance();
+            break;
+        default:
+            content = renderDashboard();
+    }
 
-            app.innerHTML = renderNavigation() + content;
-            if (currentPage === 'properties') {
+    app.innerHTML = renderNavigation() + content;
+
+    // Fetch properties when the user is on the properties page
+    if (currentPage === 'properties') {
         fetchProperties();
     }
-        }
+
+    // Fetch maintenance requests when the user is on the properties page
+    if (currentPage === 'properties') {
+        fetchMaintenanceRequests();  // This will load the maintenance requests for the property owner
+    }
+}
+
 
         // Initialize the app
         render();
