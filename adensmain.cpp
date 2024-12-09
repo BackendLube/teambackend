@@ -335,7 +335,45 @@ void PropertyManagementSystem::submitMaintenanceRequest(int tenantId, const stri
     // Clean up dynamically allocated memory
     delete[] escaped_description;
 }
+vector<map<string, string>> getMaintenanceRequests(int propertyId);
+inline vector<map<string, string>> PropertyManagementSystem::getMaintenanceRequests(int propertyId) {
+    vector<map<string, string>> requests;
+    
+    if (!conn) {
+        std::cerr << "No database connection" << std::endl;
+        return requests;
+    }
 
+    string query = "SELECT id, tenant_id, description, status FROM maintenance_requests WHERE property_id=" + to_string(propertyId);
+
+    if (mysql_query(conn, query.c_str())) {
+        std::cerr << "Maintenance request fetch failed: " << mysql_error(conn) << std::endl;
+        return requests;
+    }
+
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (result == NULL) {
+        std::cerr << "Failed to get query result" << std::endl;
+        return requests;
+    }
+
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> request;
+        request["id"] = row[0];           // Request ID
+        request["tenant_id"] = row[1];    // Tenant ID
+        request["description"] = row[2];  // Description
+        request["status"] = row[3];       // Request Status (e.g., Pending, Completed)
+        requests.push_back(request);
+    }
+
+    mysql_free_result(result);
+    return requests;
+}
+
+
+
+    
     
     // In server.cpp, modify the GET /properties/ route handler:
 else if (strstr(buffer, "GET /properties/")) {
