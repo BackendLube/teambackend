@@ -269,50 +269,112 @@ void handle_request(int client_socket) {
 else if (strstr(buffer, "POST /add-property")) {
     std::cout << "Received add property request" << std::endl;
     
-    string post_data = request.substr(request.find("\r\n\r\n") + 4);
+    // First, let's properly extract the POST data with content length consideration
+    const int BUFFER_SIZE = 4096;
+    char request_buffer[BUFFER_SIZE] = {0};
+    std::string complete_request(buffer);
     
-    size_t username_pos = post_data.find("username=");
-    size_t address_pos = post_data.find("address=");
-    size_t date_pos = post_data.find("date=");
-    size_t price_pos = post_data.find("price=");
-    size_t rent_pos = post_data.find("rent=");
+    // Get content length
+    std::string content_length_header = "Content-Length: ";
+    size_t content_length_pos = complete_request.find(content_length_header);
+    int content_length = 0;
+    
+    if (content_length_pos != std::string::npos) {
+        size_t content_length_end = complete_request.find("\r\n", content_length_pos);
+        std::string content_length_str = complete_request.substr(
+            content_length_pos + content_length_header.length(),
+            content_length_end - (content_length_pos + content_length_header.length())
+        );
+        content_length = std::stoi(content_length_str);
+    }
 
-    if (username_pos != string::npos && address_pos != string::npos && 
-        date_pos != string::npos && price_pos != string::npos && rent_pos != string::npos) {
-        
-        username_pos += 9;
-        address_pos += 8;
-        date_pos += 5;
-        price_pos += 6;
-        rent_pos += 5;
+    // Find the start of POST data
+    size_t header_end = complete_request.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        std::cerr << "Could not find end of headers" << std::endl;
+        response = "HTTP/1.1 400 Bad Request\r\n\r\n";
+        send(client_socket, response.c_str(), response.size(), 0);
+        return;
+    }
 
-        size_t username_end = post_data.find("&", username_pos);
-        size_t address_end = post_data.find("&", address_pos);
-        size_t date_end = post_data.find("&", date_pos);
-        size_t price_end = post_data.find("&", price_pos);
-        size_t rent_end = post_data.length();
-        if (post_data.find("&", rent_pos) != string::npos) {
-            rent_end = post_data.find("&", rent_pos);
-        }
+    std::string post_data = complete_request.substr(header_end + 4);
+    
+    // Ensure we have all the POST data
+    while (post_data.length() < content_length) {
+        int bytes_received = recv(client_socket, request_buffer, BUFFER_SIZE - 1, 0);
+        if (bytes_received <= 0) break;
+        post_data += std::string(request_buffer, bytes_received);
+        memset(request_buffer, 0, BUFFER_SIZE);
+    }
 
-        string username = post_data.substr(username_pos, username_end - username_pos);
-        string address = post_data.substr(address_pos, address_end - address_pos);
-        string date = post_data.substr(date_pos, date_end - date_pos);
-        double price = stod(post_data.substr(price_pos, price_end - price_pos));
-        double rent = stod(post_data.substr(rent_pos, rent_end - rent_pos));
+    // Debug output
+    std::cout << "Received POST data: " << post_data << std::endl;
 
-        bool success = pms.addProperty(username, address, date, price, rent);
+    try {
+        // Find positions of all required fields
+        size_t username_pos = post_data.find("username=");
+        size_t address_pos = post_data.find("address=");
+        size_t date_pos = post_data.find("date=");
+        size_t price_pos = post_data.find("price=");
+        size_t rent_pos = post_data.find("rent=");
 
-        if (success) {
-            response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
-            response += "{\"status\":\"success\",\"message\":\"Property added successfully\"}";
+        // Debug output for positions
+        std::cout << "Field positions - username: " << username_pos 
+                  << ", address: " << address_pos 
+                  << ", date: " << date_pos 
+                  << ", price: " << price_pos 
+                  << ", rent: " << rent_pos << std::endl;
+
+        if (username_pos != string::npos && address_pos != string::npos && 
+            date_pos != string::npos && price_pos != string::npos && rent_pos != string::npos) {
+            
+            username_pos += 9;  // "username=" length
+            address_pos += 8;   // "address=" length
+            date_pos += 5;      // "date=" length
+            price_pos += 6;     // "price=" length
+            rent_pos += 5;      // "rent=" length
+
+            // Find the end of each field
+            size_t username_end = post_data.find("&", username_pos);
+            size_t address_end = post_data.find("&", address_pos);
+            size_t date_end = post_data.find("&", date_pos);
+            size_t price_end = post_data.find("&", price_pos);
+            size_t rent_end = post_data.find("&", rent_pos);
+            
+            if (rent_end == string::npos) rent_end = post_data.length();
+
+            // Extract the values
+            string username = post_data.substr(username_pos, username_end - username_pos);
+            string address = post_data.substr(address_pos, address_end - address_pos);
+            string date = post_data.substr(date_pos, date_end - date_pos);
+            double price = stod(post_data.substr(price_pos, price_end - price_pos));
+            double rent = stod(post_data.substr(rent_pos, rent_end - rent_pos));
+
+            // Debug output for extracted values
+            std::cout << "Extracted values - username: " << username 
+                      << ", address: " << address 
+                      << ", date: " << date 
+                      << ", price: " << price 
+                      << ", rent: " << rent << std::endl;
+
+            bool success = pms.addProperty(username, address, date, price, rent);
+
+            if (success) {
+                response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
+                response += "{\"status\":\"success\",\"message\":\"Property added successfully\"}";
+            } else {
+                response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n";
+                response += "{\"status\":\"error\",\"message\":\"Failed to add property\"}";
+            }
         } else {
+            std::cerr << "Missing one or more required fields in the request" << std::endl;
             response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n";
-            response += "{\"status\":\"error\",\"message\":\"Failed to add property\"}";
+            response += "{\"status\":\"error\",\"message\":\"Missing required fields\"}";
         }
-    } else {
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing property data: " << e.what() << std::endl;
         response = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\n\r\n";
-        response += "{\"status\":\"error\",\"message\":\"Missing required fields\"}";
+        response += "{\"status\":\"error\",\"message\":\"Error processing property data\"}";
     }
 }
 // In server.cpp, modify the GET /properties/ route handler:
@@ -328,17 +390,39 @@ else if (strstr(buffer, "GET /properties/")) {
     response += "[";
     
     for (size_t i = 0; i < properties.size(); i++) {
+        string address = properties[i]["address"];
+        size_t pos = 0;
+        while ((pos = address.find("%20")) != string::npos) {
+            address.replace(pos, 3, " ");
+        }
+
         if (i > 0) response += ",";
         response += "{";
         response += "\"id\":\"" + properties[i]["id"] + "\",";
-        response += "\"address\":\"" + properties[i]["address"] + "\",";
+        response += "\"address\":\"" + address + "\",";
         response += "\"date_added\":\"" + properties[i]["date_added"] + "\",";
         response += "\"price\":\"" + properties[i]["price"] + "\",";
-        response += "\"rent_rent\":\"" + properties[i]["rent_rent"] + "\"";
+        response += "\"rent\":\"" + properties[i]["rent"] + "\"";
         response += "}";
     }
     response += "]";
 }
+else if (strstr(buffer, "GET /financial-overview/")) {
+        string username = request.substr(request.find("username=") + 9);
+        username = username.substr(0, username.find(" HTTP"));
+        
+        map<string, double> financials = pms.getFinancialOverview(username);
+        
+        response = "HTTP/1.1 200 OK\r\n";
+        response += "Content-Type: application/json\r\n";
+        response += "Connection: close\r\n\r\n";
+        response += "{";
+        response += "\"totalValue\":" + to_string(financials["totalValue"]) + ",";
+        response += "\"totalRent\":" + to_string(financials["totalRent"]) + ",";
+        response += "\"propertyCount\":" + to_string(financials["propertyCount"]) + ",";
+        response += "\"averageRent\":" + to_string(financials["averageRent"]);
+        response += "}";
+    }
     else {
         response = "HTTP/1.1 404 Not Found\r\n";
         response += "Content-Type: text/html\r\n";
@@ -346,9 +430,12 @@ else if (strstr(buffer, "GET /properties/")) {
         response += "<html><body><h1>404 Not Found</h1></body></html>";
     }
 
-    send(client_socket, response.c_str(), response.size(), 0);
-    close(client_socket);
+send(client_socket, response.c_str(), response.size(), 0);
+close(client_socket);
 }
+
+
+
 /**
  * Main server function
  * Security features:
