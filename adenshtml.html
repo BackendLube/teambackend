@@ -748,6 +748,37 @@ function renderProperties() {
                 <div id="propertiesList" class="divide-y">
                     <p class="text-gray-500">Loading properties...</p>
                 </div>
+           <div class="dashboard-card">
+    <h3>Maintenance Requests</h3>
+    <div id="maintenanceRequestsList">
+        <!-- Maintenance requests will be dynamically inserted here -->
+    </div>
+</div>
+    <div class="content">
+            <h2>Properties</h2>
+            <div class="dashboard-card">
+                <h3>Add New Property</h3>
+                <form id="addPropertyForm" onsubmit="handleAddProperty(event)">
+                    <input type="text" name="address" placeholder="Property Address" required>
+                    <input type="date" name="date" required>
+                    <input type="number" name="price" placeholder="Property Price" step="0.01" min="0" required>
+                    <input type="number" name="rent" placeholder="Monthly Rent" step="0.01" min="0" required>
+                    <button type="submit">Add Property</button>
+                </form>
+                <div id="propertyMessage" style="display: none;" class="message"></div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Your Properties</h3>
+                <div id="propertiesList" class="divide-y">
+                    <p class="text-gray-500">Loading properties...</p>
+                </div>
+            </div>
+            <!-- Maintenance Requests Section -->
+            <div class="dashboard-card">
+                <h3>Maintenance Requests</h3>
+                <div id="maintenanceRequestsList">
+                    <!-- Maintenance requests will be dynamically inserted here -->
+                </div>
             </div>
         </div>
     `;
