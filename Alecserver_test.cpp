@@ -148,22 +148,32 @@ void handle_request(int client_socket) {
     }
 
     else if (strstr(buffer, "GET /financial-overview/")) {
-        std::string username = request.substr(request.find("username=") + 9);
-        username = username.substr(0, username.find(" HTTP"));
+    // Extract the username from the HTTP request
+    std::string username = request.substr(request.find("username=") + 9);
+    username = username.substr(0, username.find(" HTTP"));
 
     // Retrieve financial overview for the user
-        std::map<std::string, double> financials = pms.getFinancialOverview(username);
+    std::map<std::string, double> financials = pms.getFinancialOverview(username);
 
-    // Create a JSON response
-        response = "HTTP/1.1 200 OK\r\n";
-        response += "Content-Type: application/json\r\n";
-        response += "Connection: close\r\n\r\n";
-        response += "{";
-        response += "\"Gross Operating Income (GOI)\":" + std::to_string(financials["Gross Operating Income (GOI)"]) + ",";
-        response += "\"Operating Expenses\":" + std::to_string(financials["Operating Expenses"]) + ",";
-        response += "\"Net Operating Income (NOI)\":" + std::to_string(financials["Net Operating Income (NOI)"]) + ",";
-        response += "\"Capitalization Rate (%)\":" + std::to_string(financials["Capitalization Rate (%)"]);
-        response += "}";
+    // Calculate additional financial data
+    double totalValue = financials["totalValue"];
+    double totalRent = financials["totalRent"];
+    double operatingExpenses = 0.3 * totalRent;  // Example assumption: 30% of total rent as operating expenses
+
+    double goi = totalRent;  // Gross Operating Income (GOI) is total rent income
+    double noi = goi - operatingExpenses;  // Net Operating Income (NOI)
+    double capRate = (totalValue > 0) ? (noi / totalValue) * 100 : 0.0;  // Capitalization Rate (Cap Rate)
+
+    // Create the JSON response with the calculated financial data
+    response = "HTTP/1.1 200 OK\r\n";
+    response += "Content-Type: application/json\r\n";
+    response += "Connection: close\r\n\r\n";
+    response += "{";
+    response += "\"Gross Operating Income (GOI)\":" + std::to_string(goi) + ",";
+    response += "\"Operating Expenses\":" + std::to_string(operatingExpenses) + ",";
+    response += "\"Net Operating Income (NOI)\":" + std::to_string(noi) + ",";
+    response += "\"Capitalization Rate (%)\":" + std::to_string(capRate);
+    response += "}";
 }
 
     
