@@ -462,35 +462,58 @@ inline vector<map<string, string> > PropertyManagementSystem::getPropertiesByUse
     mysql_free_result(result);
     return properties;
 }
+inline map<string, double> PropertyManagementSystem::getFinancialOverview(const string& username) {
+    map<string, double> financialOverview = {
+        {"totalValue", 0.0},
+        {"totalRent", 0.0},
+        {"averageRent", 0.0},
+        {"propertyCount", 0.0}
+    };
 
- // Financial Overview Calculation
-    std::map<std::string, double> getFinancialOverview(const std::string& username) {
-        std::vector<std::map<std::string, std::string>> properties = getPropertiesByUser(username);
-        double total_rental_income = 0.0;
-        double total_operating_expenses = 0.0;
-        double total_property_price = 0.0;
-
-        for (const auto& property : properties) {
-            double rent = std::stod(property.at("rent_rent"));  // Monthly rent
-            double expenses = std::stod(property.at("expenses"));  // Monthly operating expenses
-            double price = std::stod(property.at("price"));  // Property price
-
-            total_rental_income += rent * 12;  // Annual rental income
-            total_operating_expenses += expenses * 12;  // Annual operating expenses
-            total_property_price += price;
-        }
-
-        // Calculate financial terms
-        double NOI = total_rental_income - total_operating_expenses;  // Net Operating Income
-        double CapRate = total_property_price > 0 ? (NOI / total_property_price) * 100 : 0.0;  // Capitalization Rate
-
-        return {
-            {"Gross Operating Income (GOI)", total_rental_income},
-            {"Operating Expenses", total_operating_expenses},
-            {"Net Operating Income (NOI)", NOI},
-            {"Capitalization Rate (%)", CapRate}
-        };
+    if (!conn) {
+        std::cerr << "No database connection" << std::endl;
+        return financialOverview;
     }
-}; 
+
+    // Escape the username to prevent SQL injection
+    char* escaped_username = new char[username.length() * 2 + 1];
+    mysql_real_escape_string(conn, escaped_username, username.c_str(), username.length());
+
+    string query = "SELECT price, rent FROM property WHERE owner_username='" + string(escaped_username) + "'";
+    delete[] escaped_username;
+
+    if (mysql_query(conn, query.c_str())) {
+        std::cerr << "Query failed: " << mysql_error(conn) << std::endl;
+        return financialOverview;
+    }
+
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (result == NULL) {
+        std::cerr << "Failed to fetch query result" << std::endl;
+        return financialOverview;
+    }
+
+    MYSQL_ROW row;
+    double totalValue = 0.0, totalRent = 0.0;
+    int propertyCount = 0;
+
+    while ((row = mysql_fetch_row(result))) {
+        totalValue += row[0] ? atof(row[0]) : 0.0;  // Add property price
+        totalRent += row[1] ? atof(row[1]) : 0.0;   // Add rent value
+        propertyCount++;
+    }
+
+    mysql_free_result(result);
+
+    // Populate financial overview data
+    financialOverview["totalValue"] = totalValue;
+    financialOverview["totalRent"] = totalRent;
+    financialOverview["propertyCount"] = propertyCount;
+    if (propertyCount > 0) {
+        financialOverview["averageRent"] = totalRent / propertyCount;
+    }
+
+    return financialOverview;
+}
 
 #endif
