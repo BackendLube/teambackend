@@ -378,6 +378,9 @@ inline void PropertyManagementSystem::submitMaintenanceRequest(int tenantId, con
         std::cerr << "Maintenance request failed: " << mysql_error(conn) << std::endl;
     }
 }
+public:
+    // Other declarations...
+    void submitMaintenanceRequest(int tenantId, const string& description);
 /**
  * Updates property description
  * Security features:
