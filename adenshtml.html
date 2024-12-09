@@ -546,11 +546,12 @@
                     </div>
                     <div class="dashboard-card">
                         <h3>Maintenance Request</h3>
-                        <form onsubmit="event.preventDefault(); alert('Maintenance request submitted');">
-                            <textarea placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
-                            <button type="submit">Submit Request</button>
-                        </form>
-                    </div>
+                            <form id="maintenanceRequestForm" onsubmit="handleMaintenanceRequest(event)">
+                        <textarea name="description" placeholder="Describe the issue..." required style="width: 100%; margin-bottom: 1rem;"></textarea>
+            <button type="submit">Submit Request</button>
+    </form>
+    <div id="maintenanceMessage" style="display: none;" class="message"></div>
+</div>
                 </div>
             `;
         }
